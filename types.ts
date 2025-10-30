@@ -20,4 +20,5 @@ export interface WinningLine {
   symbolId: string;
   count: number;
   payout: number;
+  positions: Array<{ reelIndex: number; rowIndex: number }>;
 }

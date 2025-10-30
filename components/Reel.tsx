@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { Reel, SlotSymbolInfo, WinningLine } from '../types';
 import SlotSymbolView from './SlotSymbolView';
-import { VISIBLE_SYMBOLS, ALL_PAYLINES, REEL_SPIN_DURATION, REEL_COUNT } from '../constants';
+import { REEL_SPIN_DURATION } from '../constants';
 
 interface ReelProps {
   reel: Reel;
@@ -29,44 +29,16 @@ const ReelComponent: React.FC<ReelProps> = ({ reel, isSpinning, finalSymbolIndex
   // Only highlight symbols that are actually part of winning paylines
   const winningSymbolIndices = new Set<number>();
   winningLines.forEach(win => {
-      const payline = ALL_PAYLINES[win.lineIndex];
-      if (!payline || payline[reelIndex] === null || payline[reelIndex] === undefined) {
-          return; // This reel is not part of this payline
-      }
-      
-      const symbolRowIndex = payline[reelIndex] as number;
-      
-      // Verify the symbol matches
-      if (symbolRowIndex >= visibleSymbols.length || 
-          win.symbolId !== visibleSymbols[symbolRowIndex].id) {
-          return; // Symbol doesn't match
-      }
-      
-      // Determine the range of reels this payline covers
-      let startReel = 0;
-      let reelCount = 5; // 5-column payline by default
-      
-      if (win.lineIndex >= 5 && win.lineIndex < 10) {
-          // 3-column left payline (reels 0-2)
-          startReel = 0;
-          reelCount = 3;
-      } else if (win.lineIndex >= 10 && win.lineIndex < 15) {
-          // 3-column middle payline (reels 1-3)
-          startReel = 1;
-          reelCount = 3;
-      } else if (win.lineIndex >= 15 && win.lineIndex < 20) {
-          // 3-column right payline (reels 2-4)
-          startReel = 2;
-          reelCount = 3;
-      }
-      
-      // Only highlight if this reel is within the payline range
-      // and within the actual match count (the number of consecutive matching symbols starting from startReel)
-      const reelOffset = reelIndex - startReel;
-      // Check if this reel is part of the winning sequence
-      if (reelOffset >= 0 && reelOffset < win.count && reelIndex >= startReel && reelIndex < startReel + reelCount) {
-          winningSymbolIndices.add(symbolRowIndex);
-      }
+      win.positions.forEach(position => {
+          if (position.reelIndex !== reelIndex) {
+              return;
+          }
+
+          const rowIndex = position.rowIndex;
+          if (rowIndex >= 0 && rowIndex < visibleSymbols.length && visibleSymbols[rowIndex].id === win.symbolId) {
+              winningSymbolIndices.add(rowIndex);
+          }
+      });
   });
 
   const handleTransitionEnd = () => {

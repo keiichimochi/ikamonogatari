@@ -4,12 +4,12 @@ import type { SlotSymbolInfo } from './types';
 // To customize symbols, change the 'asset' property.
 // For example, replace '🦑' with '/images/squid.png'.
 export const SYMBOLS: SlotSymbolInfo[] = [
-  { id: 'treasure', name: 'Treasure', asset: '/images/tori.png', payouts: { 3: 100, 4: 500, 5: 2000 } },
-  { id: 'octopus', name: 'Octopus', asset: '/images/abebe.png', payouts: { 3: 50, 4: 200, 5: 800 } },
-  { id: 'crab', name: 'Crab', asset: '/images/yasuo.png', payouts: { 3: 20, 4: 80, 5: 800 } },
-  { id: 'shrimp', name: 'Shrimp', asset: '/images/kiyo.png', payouts: { 3: 10, 4: 40, 5: 150 } },
-  { id: 'squid', name: 'Squid', asset: '/images/ika.png', payouts: { 3: 5, 4: 20, 5: 2000 } },
-  { id: 'fish', name: 'Fish', asset: '/images/ooto.png', payouts: { 3: 2, 4: 10, 5: 40 } },
+  { id: 'treasure', name: 'Treasure', asset: '/images/ooto.png', payouts: { 3: 33333, 4: 55555, 5: 77777 } },
+  { id: 'octopus', name: 'Octopus', asset: '/images/yasuo.png', payouts: { 3: 1000, 4: 5000, 5: 20000 } },
+  { id: 'crab', name: 'Crab', asset: '/images/ika.png', payouts: { 3: 500, 4: 2500, 5: 10000 } },
+  { id: 'shrimp', name: 'Shrimp', asset: '/images/tori.png', payouts: { 3: 200, 4: 1000, 5: 5000 } },
+  { id: 'squid', name: 'Squid', asset: '/images/abebe.png', payouts: { 3: 100, 4: 500, 5: 2000 } },
+  { id: 'fish', name: 'Fish', asset: '/images/kiyo.png', payouts: { 3: 1, 4: 2, 5: 3 } },
 ];
 
 export const REEL_COUNT = 5;

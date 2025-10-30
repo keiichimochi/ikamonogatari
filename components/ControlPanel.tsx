@@ -35,7 +35,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ credits, bet, onBetChange, 
             active:scale-95 shadow-lg
           `}
         >
-          {musicOn ? '🔊 MUSIC ON' : '🔇 MUSIC OFF'}
+          {musicOn ? '🔇 MUSIC OFF' : '🔊 MUSIC ON'}
         </button>
       </div>
 

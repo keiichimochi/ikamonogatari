@@ -17,8 +17,8 @@ const PayoutLine: React.FC<PayoutLineProps> = ({ symbol }) => {
   const imageSrc = isImageAsset ? `${symbol.asset}?v=${symbol.id}` : symbol.asset;
   
   return (
-    <div className="flex items-center justify-start w-full text-[10px] sm:text-xs md:text-sm mb-0.5 sm:mb-1 space-x-1 sm:space-x-2">
-        <div className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 flex-shrink-0 flex items-center justify-center">
+    <div className="flex items-center justify-start w-full text-[10px] sm:text-xs md:text-sm mb-0.5 sm:mb-1">
+        <div className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 flex-shrink-0 flex items-center justify-center mr-1 sm:mr-2">
             {isImageAsset ? (
               imageError ? (
                 <span className="text-xs text-yellow-400">{symbol.name}</span>
@@ -34,15 +34,17 @@ const PayoutLine: React.FC<PayoutLineProps> = ({ symbol }) => {
                 <span className="text-xl md:text-2xl text-center">{symbol.asset}</span>
             )}
         </div>
-        {Object.entries(symbol.payouts)
-            .sort(([a], [b]) => Number(b) - Number(a)) // Sort by match count: 5, 4, 3
-            .map(([count, payout]) => (
-                <React.Fragment key={count}>
-                    <span>x{count}</span>
-                    <span className="font-game text-yellow-300 w-8 sm:w-10 text-right">{payout}</span>
-                </React.Fragment>
-            ))
-        }
+        <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
+            {Object.entries(symbol.payouts)
+                .sort(([a], [b]) => Number(b) - Number(a)) // Sort by match count: 5, 4, 3
+                .map(([count, payout]) => (
+                    <React.Fragment key={count}>
+                        <span className="text-white whitespace-nowrap">x{count}</span>
+                        <span className="font-game text-yellow-300 whitespace-nowrap min-w-[2ch] sm:min-w-[3ch] md:min-w-[4ch] text-right">{payout}</span>
+                    </React.Fragment>
+                ))
+            }
+        </div>
     </div>
   );
 };

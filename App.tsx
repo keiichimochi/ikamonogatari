@@ -119,98 +119,108 @@ const App: React.FC = () => {
         let totalWinnings = 0;
         const newWinningLines: WinningLine[] = [];
 
+        const applyWin = (
+            lineIndex: number,
+            symbol: SlotSymbolInfo,
+            matchCount: number,
+            positions: Array<{ reelIndex: number; rowIndex: number }>
+        ) => {
+            const basePayout = symbol.payouts[matchCount] || 0;
+            if (basePayout <= 0) {
+                return;
+            }
+
+            const payout = basePayout * (currentBet / BET_AMOUNTS[0]);
+            if (payout <= 0) {
+                return;
+            }
+
+            totalWinnings += payout;
+            newWinningLines.push({
+                lineIndex,
+                symbolId: symbol.id,
+                count: matchCount,
+                payout,
+                positions,
+            });
+        };
+
         // Check 5-column paylines (lineIndex 0-4)
         PAYLINES.forEach((line, lineIndex) => {
             const firstSymbol = finalReelsMatrix[0][line[0]];
+            if (!firstSymbol) {
+                return;
+            }
+
+            const positions: Array<{ reelIndex: number; rowIndex: number }> = [
+                { reelIndex: 0, rowIndex: line[0] },
+            ];
             let matchCount = 1;
+
             for (let i = 1; i < REEL_COUNT; i++) {
-                if (finalReelsMatrix[i][line[i]].id === firstSymbol.id) {
+                const candidate = finalReelsMatrix[i][line[i]];
+                if (candidate.id === firstSymbol.id) {
                     matchCount++;
+                    positions.push({ reelIndex: i, rowIndex: line[i] });
                 } else {
                     break;
                 }
             }
 
             if (matchCount >= 3) {
-                const payout = (firstSymbol.payouts[matchCount] || 0) * (currentBet / BET_AMOUNTS[0]);
-                if (payout > 0) {
-                    totalWinnings += payout;
-                    newWinningLines.push({ lineIndex, symbolId: firstSymbol.id, count: matchCount, payout });
-                }
+                applyWin(lineIndex, firstSymbol, matchCount, positions);
             }
         });
 
-        // Check 3-column paylines (left side: columns 0-2, lineIndex 5-9)
+        const evaluateThreeColumnPayline = (
+            line: number[],
+            startReel: number,
+            globalLineIndex: number
+        ) => {
+            const firstSymbol = finalReelsMatrix[startReel][line[0]];
+            if (!firstSymbol) {
+                return;
+            }
+
+            const positions: Array<{ reelIndex: number; rowIndex: number }> = [
+                { reelIndex: startReel, rowIndex: line[0] },
+            ];
+            let matchCount = 1;
+
+            for (let offset = 1; offset < 3; offset++) {
+                const reelIndex = startReel + offset;
+                const candidate = finalReelsMatrix[reelIndex][line[offset]];
+                if (candidate.id === firstSymbol.id) {
+                    matchCount++;
+                    positions.push({ reelIndex, rowIndex: line[offset] });
+                } else {
+                    break;
+                }
+            }
+
+            if (matchCount === 3) {
+                applyWin(globalLineIndex, firstSymbol, matchCount, positions);
+            }
+        };
+
+        // Check 3-column paylines
         PAYLINES_3_LEFT.forEach((line, localIndex) => {
-            const firstSymbol = finalReelsMatrix[0][line[0]];
-            let matchCount = 1;
-            for (let i = 1; i < 3; i++) {
-                if (finalReelsMatrix[i][line[i]].id === firstSymbol.id) {
-                    matchCount++;
-                } else {
-                    break;
-                }
-            }
-
-            if (matchCount >= 3) {
-                const payout = (firstSymbol.payouts[matchCount] || 0) * (currentBet / BET_AMOUNTS[0]);
-                if (payout > 0) {
-                    const lineIndex = 5 + localIndex; // Map to ALL_PAYLINES index
-                    totalWinnings += payout;
-                    newWinningLines.push({ lineIndex, symbolId: firstSymbol.id, count: matchCount, payout });
-                }
-            }
+            evaluateThreeColumnPayline(line, 0, 5 + localIndex);
         });
 
-        // Check 3-column paylines (middle: columns 1-3, lineIndex 10-14)
         PAYLINES_3_MIDDLE.forEach((line, localIndex) => {
-            const firstSymbol = finalReelsMatrix[1][line[0]];
-            let matchCount = 1;
-            for (let i = 1; i < 3; i++) {
-                if (finalReelsMatrix[i + 1][line[i]].id === firstSymbol.id) {
-                    matchCount++;
-                } else {
-                    break;
-                }
-            }
-
-            if (matchCount >= 3) {
-                const payout = (firstSymbol.payouts[matchCount] || 0) * (currentBet / BET_AMOUNTS[0]);
-                if (payout > 0) {
-                    const lineIndex = 10 + localIndex; // Map to ALL_PAYLINES index
-                    totalWinnings += payout;
-                    newWinningLines.push({ lineIndex, symbolId: firstSymbol.id, count: matchCount, payout });
-                }
-            }
+            evaluateThreeColumnPayline(line, 1, 10 + localIndex);
         });
 
-        // Check 3-column paylines (right side: columns 2-4, lineIndex 15-19)
         PAYLINES_3_RIGHT.forEach((line, localIndex) => {
-            const firstSymbol = finalReelsMatrix[2][line[0]];
-            let matchCount = 1;
-            for (let i = 1; i < 3; i++) {
-                if (finalReelsMatrix[i + 2][line[i]].id === firstSymbol.id) {
-                    matchCount++;
-                } else {
-                    break;
-                }
-            }
-
-            if (matchCount >= 3) {
-                const payout = (firstSymbol.payouts[matchCount] || 0) * (currentBet / BET_AMOUNTS[0]);
-                if (payout > 0) {
-                    const lineIndex = 15 + localIndex; // Map to ALL_PAYLINES index
-                    totalWinnings += payout;
-                    newWinningLines.push({ lineIndex, symbolId: firstSymbol.id, count: matchCount, payout });
-                }
-            }
+            evaluateThreeColumnPayline(line, 2, 15 + localIndex);
         });
 
         if (totalWinnings > 0) {
             setLastWin(totalWinnings);
             setCredits(prev => prev + totalWinnings);
             setWinningLines(newWinningLines);
-            
+
             // Play win sound
             if (winSoundRef.current) {
                 winSoundRef.current.currentTime = 0;
