@@ -26,6 +26,8 @@ const App: React.FC = () => {
     const [winningLines, setWinningLines] = useState<WinningLine[]>([]);
     const [musicOn, setMusicOn] = useState(false);
     const [nextStopIndex, setNextStopIndex] = useState(0);
+    const [showOops, setShowOops] = useState(false);
+    const [oopsImage, setOopsImage] = useState<string | null>(null);
     
     // Audio refs
     const backgroundMusicRef = React.useRef<HTMLAudioElement | null>(null);
@@ -82,6 +84,8 @@ const App: React.FC = () => {
         setLastWin(null);
         setWinningLines([]);
         setNextStopIndex(0); // Reset stop index
+        setShowOops(false); // Reset oops display
+        setOopsImage(null); // Reset oops image
         
         // Generate new reels for each spin
         const newReels = Array(REEL_COUNT).fill(0).map(generateReel);
@@ -220,6 +224,7 @@ const App: React.FC = () => {
             setLastWin(totalWinnings);
             setCredits(prev => prev + totalWinnings);
             setWinningLines(newWinningLines);
+            setShowOops(false);
 
             // Play win sound
             if (winSoundRef.current) {
@@ -228,6 +233,18 @@ const App: React.FC = () => {
                     console.log('Win sound play failed:', err);
                 });
             }
+        } else {
+            // Show random oops image when no win
+            const oopsImages = [
+                '/images/oops/atama.png',
+                '/images/oops/ganbare.png',
+                '/images/oops/oops.png',
+                '/images/oops/pooh.png',
+                '/images/oops/tequira.png',
+            ];
+            const randomImage = oopsImages[Math.floor(Math.random() * oopsImages.length)];
+            setOopsImage(randomImage);
+            setShowOops(true);
         }
 
         setTimeout(() => {
@@ -243,6 +260,17 @@ const App: React.FC = () => {
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [spinningReels, gameState, checkWins]);
+
+    // Auto-hide oops image after 1.5 seconds
+    useEffect(() => {
+        if (showOops) {
+            const timer = setTimeout(() => {
+                setShowOops(false);
+                setOopsImage(null);
+            }, 1500);
+            return () => clearTimeout(timer);
+        }
+    }, [showOops]);
 
     const handleBetChange = (direction: 'up' | 'down') => {
         if (gameState !== GameStateEnum.IDLE) return;
@@ -292,6 +320,16 @@ const App: React.FC = () => {
                                 {lastWin}
                             </p>
                         </div>
+                    </div>
+                )}
+                
+                {showOops && oopsImage && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 pointer-events-none z-30">
+                        <img 
+                            src={oopsImage} 
+                            alt="Oops" 
+                            className="max-w-[80%] sm:max-w-[60%] md:max-w-[50%] h-auto animate-pulse"
+                        />
                     </div>
                 )}
                 
