@@ -1,0 +1,168 @@
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { SYMBOLS, REEL_COUNT, VISIBLE_SYMBOLS, INITIAL_CREDITS, BET_AMOUNTS, PAYLINES, REEL_SPIN_DURATION, REEL_STOP_DELAY, WIN_ANIMATION_DURATION } from './constants';
+import type { SlotSymbolInfo, Reel, GameState, WinningLine } from './types';
+import { GameState as GameStateEnum } from './types';
+import ReelComponent from './components/Reel';
+import ControlPanel from './components/ControlPanel';
+import PayoutTable from './components/PayoutTable';
+
+const generateReel = (): Reel => {
+    const reel: Reel = [];
+    // Create a much longer strip of symbols than is visible for a better spinning illusion
+    for (let i = 0; i < 20; i++) {
+        reel.push(SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)]);
+    }
+    return reel;
+};
+
+const App: React.FC = () => {
+    const [credits, setCredits] = useState(INITIAL_CREDITS);
+    const [betIndex, setBetIndex] = useState(0);
+    const [reels, setReels] = useState<Reel[]>(() => Array(REEL_COUNT).fill(0).map(generateReel));
+    const [spinningReels, setSpinningReels] = useState<boolean[]>(Array(REEL_COUNT).fill(false));
+    const [finalSymbolIndexes, setFinalSymbolIndexes] = useState<number[]>(Array(REEL_COUNT).fill(0));
+    const [gameState, setGameState] = useState<GameState>(GameStateEnum.IDLE);
+    const [lastWin, setLastWin] = useState<number | null>(null);
+    const [winningLines, setWinningLines] = useState<WinningLine[]>([]);
+    
+    const currentBet = BET_AMOUNTS[betIndex];
+
+    const handleSpin = () => {
+        if (gameState !== GameStateEnum.IDLE || credits < currentBet) return;
+
+        setGameState(GameStateEnum.SPINNING);
+        setCredits(prev => prev - currentBet);
+        setLastWin(null);
+        setWinningLines([]);
+        
+        const newFinalIndexes = reels.map(reel => Math.floor(Math.random() * (reel.length - VISIBLE_SYMBOLS)));
+        setFinalSymbolIndexes(newFinalIndexes);
+
+        const newSpinningReels = Array(REEL_COUNT).fill(true);
+        setSpinningReels(newSpinningReels);
+
+        // Stagger the stopping of the reels
+        for (let i = 0; i < REEL_COUNT; i++) {
+            setTimeout(() => {
+                setSpinningReels(prev => {
+                    const next = [...prev];
+                    next[i] = false;
+                    return next;
+                });
+            }, REEL_SPIN_DURATION + i * REEL_STOP_DELAY);
+        }
+    };
+    
+    const checkWins = useCallback(() => {
+        const finalReelsMatrix: SlotSymbolInfo[][] = finalSymbolIndexes.map((finalIndex, reelIdx) => {
+            return reels[reelIdx].slice(finalIndex, finalIndex + VISIBLE_SYMBOLS);
+        });
+
+        let totalWinnings = 0;
+        const newWinningLines: WinningLine[] = [];
+
+        PAYLINES.forEach((line, lineIndex) => {
+            const firstSymbol = finalReelsMatrix[0][line[0]];
+            let matchCount = 1;
+            for (let i = 1; i < REEL_COUNT; i++) {
+                if (finalReelsMatrix[i][line[i]].id === firstSymbol.id) {
+                    matchCount++;
+                } else {
+                    break;
+                }
+            }
+
+            if (matchCount >= 3) {
+                const payout = (firstSymbol.payouts[matchCount] || 0) * (currentBet / BET_AMOUNTS[0]);
+                if (payout > 0) {
+                    totalWinnings += payout;
+                    newWinningLines.push({ lineIndex, symbolId: firstSymbol.id, count: matchCount, payout });
+                }
+            }
+        });
+
+        if (totalWinnings > 0) {
+            setLastWin(totalWinnings);
+            setCredits(prev => prev + totalWinnings);
+            setWinningLines(newWinningLines);
+        }
+
+        setTimeout(() => {
+            setGameState(GameStateEnum.IDLE);
+        }, totalWinnings > 0 ? WIN_ANIMATION_DURATION : 0);
+
+    }, [finalSymbolIndexes, reels, currentBet]);
+
+    useEffect(() => {
+        if (gameState === GameStateEnum.SPINNING && !spinningReels.some(s => s)) {
+            setGameState(GameStateEnum.SHOWING_RESULTS);
+            checkWins();
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [spinningReels, gameState, checkWins]);
+
+    const handleBetChange = (direction: 'up' | 'down') => {
+        if (gameState !== GameStateEnum.IDLE) return;
+        if (direction === 'up') {
+            setBetIndex(prev => (prev + 1) % BET_AMOUNTS.length);
+        } else {
+            setBetIndex(prev => (prev - 1 + BET_AMOUNTS.length) % BET_AMOUNTS.length);
+        }
+    };
+    
+    const visibleSymbolsMatrix = useMemo(() => {
+        return finalSymbolIndexes.map((finalIndex, reelIdx) => {
+            return reels[reelIdx].slice(finalIndex, finalIndex + VISIBLE_SYMBOLS);
+        });
+    }, [finalSymbolIndexes, reels]);
+
+    return (
+        <main className="w-full h-screen bg-gray-900 flex flex-col items-center justify-center p-4 overflow-hidden">
+             <div className="relative w-full max-w-4xl bg-gradient-to-b from-indigo-900 to-purple-900 border-4 border-yellow-400 rounded-2xl shadow-2xl shadow-yellow-500/20 p-4 md:p-8 text-white">
+                <PayoutTable symbols={SYMBOLS} />
+                
+                <header className="text-center mb-4">
+                    <h1 className="text-3xl md:text-5xl font-game text-yellow-300 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">
+                        イカ物語
+                    </h1>
+                </header>
+
+                <div className="grid grid-cols-5 gap-2 md:gap-4 p-2 md:p-4 bg-black/30 rounded-lg border-2 border-yellow-600">
+                    {reels.map((reel, i) => (
+                        <ReelComponent
+                            key={i}
+                            reel={reel}
+                            isSpinning={spinningReels[i]}
+                            finalSymbolIndex={finalSymbolIndexes[i]}
+                            visibleSymbols={visibleSymbolsMatrix[i]}
+                            winningLines={winningLines}
+                            reelIndex={i}
+                        />
+                    ))}
+                </div>
+                
+                {lastWin && lastWin > 0 && (
+                     <div className="absolute inset-0 flex items-center justify-center bg-black/50 pointer-events-none">
+                        <div className="text-center animate-pulse">
+                            <p className="text-2xl md:text-4xl font-game text-white">WIN</p>
+                            <p className="text-5xl md:text-8xl font-game text-yellow-300 drop-shadow-[0_4px_4px_rgba(0,0,0,1)]">
+                                {lastWin}
+                            </p>
+                        </div>
+                    </div>
+                )}
+                
+                <ControlPanel
+                    credits={credits}
+                    bet={currentBet}
+                    onBetChange={handleBetChange}
+                    onSpin={handleSpin}
+                    isSpinning={gameState !== GameStateEnum.IDLE}
+                    canSpin={credits >= currentBet}
+                />
+            </div>
+        </main>
+    );
+};
+
+export default App;
