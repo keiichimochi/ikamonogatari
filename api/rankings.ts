@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { kv } from '@vercel/kv';
 
 interface RankingEntry {
   name: string;
@@ -6,13 +7,33 @@ interface RankingEntry {
   timestamp: number;
 }
 
-// メモリ内にランキングを保存（VercelのServerless Functionsはステートレスなので、
-// 実際の運用では外部データベース（Vercel KV、PostgreSQLなど）を使うことを推奨）
-// この実装は簡易版として動作しますが、複数のインスタンス間でデータが共有されません
-let rankings: RankingEntry[] = [];
+// Vercel KVのキー
+const RANKINGS_KEY = 'ikamonogatari:rankings';
 
 // 最大ランキング数
 const MAX_RANKINGS = 100;
+
+// ランキングを取得
+async function getRankings(): Promise<RankingEntry[]> {
+  try {
+    const rankings = await kv.get<RankingEntry[]>(RANKINGS_KEY);
+    return rankings || [];
+  } catch (error) {
+    console.error('Error fetching rankings from KV:', error);
+    return [];
+  }
+}
+
+// ランキングを保存
+async function saveRankings(rankings: RankingEntry[]): Promise<boolean> {
+  try {
+    await kv.set(RANKINGS_KEY, rankings);
+    return true;
+  } catch (error) {
+    console.error('Error saving rankings to KV:', error);
+    return false;
+  }
+}
 
 export default async function handler(
   request: VercelRequest,
@@ -29,7 +50,8 @@ export default async function handler(
 
   if (request.method === 'GET') {
     // ランキングを取得（スコアの降順でソート）
-    const sortedRankings = [...rankings]
+    const rankings = await getRankings();
+    const sortedRankings = rankings
       .sort((a, b) => b.score - a.score)
       .slice(0, MAX_RANKINGS);
     
@@ -51,6 +73,9 @@ export default async function handler(
     // 名前の長さ制限
     const trimmedName = name.trim().slice(0, 20);
 
+    // 既存のランキングを取得
+    const rankings = await getRankings();
+
     // 新しいエントリを追加
     const newEntry: RankingEntry = {
       name: trimmedName,
@@ -65,10 +90,17 @@ export default async function handler(
 
     // 最大数を超えたら古いものを削除
     if (rankings.length > MAX_RANKINGS) {
-      rankings = rankings.slice(0, MAX_RANKINGS);
+      rankings.splice(MAX_RANKINGS);
     }
 
-    return response.status(200).json({ success: true, entry: newEntry });
+    // ランキングをVercel KVに保存
+    const saved = await saveRankings(rankings);
+
+    if (saved) {
+      return response.status(200).json({ success: true, entry: newEntry });
+    } else {
+      return response.status(500).json({ error: 'ランキングの保存に失敗しました' });
+    }
   }
 
   return response.status(405).json({ error: 'Method not allowed' });
