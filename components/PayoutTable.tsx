@@ -17,8 +17,8 @@ const PayoutLine: React.FC<PayoutLineProps> = ({ symbol }) => {
   const imageSrc = isImageAsset ? `${symbol.asset}?v=${symbol.id}` : symbol.asset;
   
   return (
-    <div className="flex items-center justify-start w-full text-xs md:text-sm mb-1 space-x-2">
-        <div className="w-7 h-7 flex-shrink-0 flex items-center justify-center">
+    <div className="flex items-center justify-start w-full text-[10px] sm:text-xs md:text-sm mb-0.5 sm:mb-1 space-x-1 sm:space-x-2">
+        <div className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 flex-shrink-0 flex items-center justify-center">
             {isImageAsset ? (
               imageError ? (
                 <span className="text-xs text-yellow-400">{symbol.name}</span>
@@ -39,7 +39,7 @@ const PayoutLine: React.FC<PayoutLineProps> = ({ symbol }) => {
             .map(([count, payout]) => (
                 <React.Fragment key={count}>
                     <span>x{count}</span>
-                    <span className="font-game text-yellow-300 w-10 text-right">{payout}</span>
+                    <span className="font-game text-yellow-300 w-8 sm:w-10 text-right">{payout}</span>
                 </React.Fragment>
             ))
         }
@@ -53,8 +53,8 @@ const PayoutTable: React.FC<PayoutTableProps> = ({ symbols }) => {
   const column2Symbols = symbols.slice(midIndex);
 
   return (
-    <div className="w-full bg-black/30 rounded-lg p-2 md:p-4 border-2 border-yellow-600 mb-4">
-      <div className="grid grid-cols-2 gap-x-2 md:gap-x-4">
+    <div className="w-full bg-black/30 rounded-lg p-1.5 sm:p-2 md:p-4 border border-yellow-600 sm:border-2 mb-2 sm:mb-4">
+      <div className="grid grid-cols-2 gap-x-1 sm:gap-x-2 md:gap-x-4">
         <div>
           {column1Symbols.map(symbol => (
             <PayoutLine key={symbol.id} symbol={symbol} />

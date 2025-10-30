@@ -12,8 +12,8 @@ const SlotSymbolView: React.FC<SlotSymbolViewProps> = ({ symbol, isWinning }) =>
   const isImageAsset = symbol.asset.startsWith('/images/');
 
   return (
-    <div className="h-[100px] flex-shrink-0 flex items-center justify-center transition-all duration-300">
-      <div className={`relative flex items-center justify-center w-16 h-16 md:w-20 md:h-20 ${isWinning ? 'winning-symbol' : ''}`}>
+    <div className="h-[80px] sm:h-[90px] md:h-[100px] flex-shrink-0 flex items-center justify-center transition-all duration-300">
+      <div className={`relative flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 md:w-20 md:h-20 ${isWinning ? 'winning-symbol' : ''}`}>
         {/* Multiple glow layers for more dramatic effect */}
         {isWinning && (
           <>

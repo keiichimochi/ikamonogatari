@@ -22,19 +22,22 @@
           opacity: 1;
         }
         50% {
-          transform: scale(1.3);
-          opacity: 0.8;
+          transform: scale(1.8);
+          opacity: 0.9;
         }
       }
-      @keyframes win-rotate {
-        0% {
-          transform: rotate(0deg) scale(1);
+      @keyframes win-expand {
+        0%, 100% {
+          transform: scale(1) rotate(0deg);
+        }
+        25% {
+          transform: scale(1.7) rotate(90deg);
         }
         50% {
-          transform: rotate(180deg) scale(1.2);
+          transform: scale(1.3) rotate(180deg);
         }
-        100% {
-          transform: rotate(360deg) scale(1);
+        75% {
+          transform: scale(1.8) rotate(270deg);
         }
       }
       @keyframes win-glow {
@@ -64,8 +67,7 @@
         }
       }
       .winning-symbol {
-        animation: win-pulse 0.5s ease-in-out infinite,
-                   win-rotate 2s linear infinite,
+        animation: win-expand 0.8s ease-in-out infinite,
                    win-glow 1s ease-in-out infinite;
         z-index: 50;
       }

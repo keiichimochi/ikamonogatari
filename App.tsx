@@ -250,17 +250,17 @@ const App: React.FC = () => {
     }, [finalSymbolIndexes, reels]);
 
     return (
-        <main className="w-full h-screen bg-gray-900 flex flex-col items-center justify-center p-4 overflow-hidden">
-             <div className="relative w-full max-w-4xl bg-gradient-to-b from-indigo-900 to-purple-900 border-4 border-yellow-400 rounded-2xl shadow-2xl shadow-yellow-500/20 p-4 md:p-8 text-white">
+        <main className="w-full min-h-screen bg-gray-900 flex flex-col items-center justify-center p-2 sm:p-4 overflow-y-auto">
+             <div className="relative w-full max-w-4xl bg-gradient-to-b from-indigo-900 to-purple-900 border-2 sm:border-4 border-yellow-400 rounded-xl sm:rounded-2xl shadow-2xl shadow-yellow-500/20 p-2 sm:p-4 md:p-8 text-white">
                 <PayoutTable symbols={SYMBOLS} />
                 
-                <header className="text-center mb-4">
-                    <h1 className="text-3xl md:text-5xl font-game text-yellow-300 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">
+                <header className="text-center mb-2 sm:mb-4">
+                    <h1 className="text-2xl sm:text-3xl md:text-5xl font-game text-yellow-300 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">
                         イカ物語
                     </h1>
                 </header>
 
-                <div className="grid grid-cols-5 gap-2 md:gap-4 p-2 md:p-4 bg-black/30 rounded-lg border-2 border-yellow-600">
+                <div className="grid grid-cols-5 gap-1 sm:gap-2 md:gap-4 p-1 sm:p-2 md:p-4 bg-black/30 rounded-lg border-2 border-yellow-600">
                     {reels.map((reel, i) => (
                         <ReelComponent
                             key={i}
@@ -275,10 +275,10 @@ const App: React.FC = () => {
                 </div>
                 
                 {lastWin && lastWin > 0 && (
-                     <div className="absolute inset-0 flex items-center justify-center bg-black/50 pointer-events-none">
+                     <div className="absolute inset-0 flex items-center justify-center bg-black/50 pointer-events-none z-30">
                         <div className="text-center animate-pulse">
-                            <p className="text-2xl md:text-4xl font-game text-white">WIN</p>
-                            <p className="text-5xl md:text-8xl font-game text-yellow-300 drop-shadow-[0_4px_4px_rgba(0,0,0,1)]">
+                            <p className="text-xl sm:text-2xl md:text-4xl font-game text-white">WIN</p>
+                            <p className="text-4xl sm:text-5xl md:text-8xl font-game text-yellow-300 drop-shadow-[0_4px_4px_rgba(0,0,0,1)]">
                                 {lastWin}
                             </p>
                         </div>

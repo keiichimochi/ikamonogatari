@@ -18,13 +18,13 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ credits, bet, onBetChange, 
   const buttonDisabled = isSpinning || !canSpin;
 
   return (
-    <div className="mt-4 md:mt-6">
+    <div className="mt-2 sm:mt-4 md:mt-6">
       {/* Music Toggle Button */}
       <div className="flex justify-end mb-2">
         <button
           onClick={onMusicToggle}
           className={`
-            px-3 py-1 md:px-4 md:py-2 rounded-lg text-sm md:text-base font-game
+            px-2 py-1 sm:px-3 sm:py-1 md:px-4 md:py-2 rounded-lg text-xs sm:text-sm md:text-base font-game
             transition-all duration-200 ease-in-out
             border-2
             ${
@@ -39,34 +39,34 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ credits, bet, onBetChange, 
         </button>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 md:gap-4 items-center text-center">
+      <div className="grid grid-cols-3 gap-1 sm:gap-2 md:gap-4 items-center text-center">
         {/* Credits Display */}
-        <div className="bg-black/50 rounded-lg p-2 border-2 border-yellow-600">
-          <p className="text-sm md:text-lg text-yellow-300 font-bold">CREDITS</p>
-          <p className="text-lg md:text-2xl font-game tracking-tighter">{credits}</p>
+        <div className="bg-black/50 rounded-lg p-1.5 sm:p-2 border border-yellow-600 sm:border-2">
+          <p className="text-xs sm:text-sm md:text-lg text-yellow-300 font-bold">CREDITS</p>
+          <p className="text-sm sm:text-lg md:text-2xl font-game tracking-tighter">{credits}</p>
         </div>
 
         {/* Bet Controls */}
-        <div className="bg-black/50 rounded-lg p-2 border-2 border-yellow-600 flex flex-col items-center">
-          <p className="text-sm md:text-lg text-yellow-300 font-bold">BET</p>
-          <div className="flex items-center justify-center gap-2">
-            <button onClick={() => onBetChange('down')} disabled={isSpinning} className="text-lg md:text-2xl text-yellow-300 disabled:opacity-50 transition-transform active:scale-90">
+        <div className="bg-black/50 rounded-lg p-1.5 sm:p-2 border border-yellow-600 sm:border-2 flex flex-col items-center">
+          <p className="text-xs sm:text-sm md:text-lg text-yellow-300 font-bold">BET</p>
+          <div className="flex items-center justify-center gap-1 sm:gap-2">
+            <button onClick={() => onBetChange('down')} disabled={isSpinning} className="text-base sm:text-lg md:text-2xl text-yellow-300 disabled:opacity-50 transition-transform active:scale-90">
               -
             </button>
-            <p className="text-lg md:text-2xl font-game tracking-tighter w-16">{bet}</p>
-            <button onClick={() => onBetChange('up')} disabled={isSpinning} className="text-lg md:text-2xl text-yellow-300 disabled:opacity-50 transition-transform active:scale-90">
+            <p className="text-sm sm:text-lg md:text-2xl font-game tracking-tighter w-12 sm:w-16">{bet}</p>
+            <button onClick={() => onBetChange('up')} disabled={isSpinning} className="text-base sm:text-lg md:text-2xl text-yellow-300 disabled:opacity-50 transition-transform active:scale-90">
               +
             </button>
           </div>
         </div>
 
         {/* Spin Button */}
-        <div className="col-span-3 md:col-span-1 mt-2 md:mt-0 flex items-center justify-center">
+        <div className="col-span-3 sm:col-span-1 mt-2 sm:mt-0 flex items-center justify-center">
           <button
             onClick={onSpin}
             disabled={buttonDisabled}
             className={`
-              w-full md:w-36 h-20 md:h-full rounded-lg font-game text-2xl
+              w-full sm:w-32 md:w-36 h-14 sm:h-16 md:h-20 rounded-lg font-game text-lg sm:text-xl md:text-2xl
               transition-all duration-200 ease-in-out
               border-b-4 
               ${
@@ -85,12 +85,12 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ credits, bet, onBetChange, 
       
       {/* Stop Next Reel Button */}
       {isSpinning && (
-        <div className="mt-4 flex items-center justify-center">
+        <div className="mt-2 sm:mt-4 flex items-center justify-center">
           <button
             onClick={onStopNextReel}
             disabled={!canStopNext}
             className={`
-              w-full md:w-36 h-16 rounded-lg font-game text-xl
+              w-full sm:w-32 md:w-36 h-12 sm:h-14 md:h-16 rounded-lg font-game text-base sm:text-lg md:text-xl
               transition-all duration-200 ease-in-out
               border-b-4 
               ${

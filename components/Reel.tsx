@@ -14,7 +14,8 @@ interface ReelProps {
 
 const ReelComponent: React.FC<ReelProps> = ({ reel, isSpinning, finalSymbolIndex, visibleSymbols, winningLines, reelIndex }) => {
   const [showResult, setShowResult] = useState(false);
-  const symbolHeight = 100; // Assuming each symbol is 100px tall for calculation
+  // Symbol height varies by screen size: 80px mobile, 90px tablet, 100px desktop
+  const symbolHeight = typeof window !== 'undefined' ? (window.innerWidth >= 768 ? 100 : window.innerWidth >= 640 ? 90 : 80) : 80;
   const finalPosition = -finalSymbolIndex * symbolHeight;
 
   // Reset showResult when spinning starts
@@ -62,7 +63,8 @@ const ReelComponent: React.FC<ReelProps> = ({ reel, isSpinning, finalSymbolIndex
       // Only highlight if this reel is within the payline range
       // and within the actual match count (the number of consecutive matching symbols starting from startReel)
       const reelOffset = reelIndex - startReel;
-      if (reelOffset >= 0 && reelOffset < win.count && reelIndex < startReel + reelCount) {
+      // Check if this reel is part of the winning sequence
+      if (reelOffset >= 0 && reelOffset < win.count && reelIndex >= startReel && reelIndex < startReel + reelCount) {
           winningSymbolIndices.add(symbolRowIndex);
       }
   });
@@ -74,7 +76,7 @@ const ReelComponent: React.FC<ReelProps> = ({ reel, isSpinning, finalSymbolIndex
   };
 
   return (
-    <div className="relative h-[300px] w-full bg-blue-900/50 overflow-hidden rounded-md border-2 border-yellow-500/50 shadow-inner shadow-black/50">
+    <div className="relative h-[240px] sm:h-[270px] md:h-[300px] w-full bg-blue-900/50 overflow-hidden rounded-md border border-yellow-500/50 sm:border-2 shadow-inner shadow-black/50">
       {/* Spinning reel */}
       <div
         className={`flex flex-col absolute top-0 left-0 w-full ${isSpinning ? 'reel-spinning' : ''}`}
@@ -90,7 +92,7 @@ const ReelComponent: React.FC<ReelProps> = ({ reel, isSpinning, finalSymbolIndex
       </div>
       {/* Static overlay for displaying results without moving with the reel */}
       {showResult && !isSpinning && (
-          <div className="absolute top-0 left-0 w-full h-full flex flex-col pointer-events-none z-10">
+          <div className="absolute top-0 left-0 w-full h-full flex flex-col pointer-events-none z-20">
               {visibleSymbols.map((symbol, index) => (
                   <SlotSymbolView 
                       key={`result-${index}`} 
