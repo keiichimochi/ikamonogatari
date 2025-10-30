@@ -48,19 +48,22 @@ const ReelComponent: React.FC<ReelProps> = ({ reel, isSpinning, finalSymbolIndex
   };
 
   return (
-    <div className="relative h-[240px] sm:h-[270px] md:h-[300px] w-full bg-blue-900/50 overflow-hidden rounded-md border border-yellow-500/50 sm:border-2 shadow-inner shadow-black/50">
-      {/* Spinning reel */}
-      <div
-        className={`flex flex-col absolute top-0 left-0 w-full ${isSpinning ? 'reel-spinning' : ''}`}
-        style={isSpinning ? {} : { 
-          transform: `translateY(${finalPosition}px)`,
-          transition: `transform ${REEL_SPIN_DURATION}ms ease-out`,
-        }}
-        onTransitionEnd={handleTransitionEnd}
-      >
-         {reel.map((symbol, index) => (
-           <SlotSymbolView key={`spinning-${index}`} symbol={symbol} isWinning={false} />
-         ))}
+    <div className="relative h-[240px] sm:h-[270px] md:h-[300px] w-full bg-blue-900/50 rounded-md border border-yellow-500/50 sm:border-2 shadow-inner shadow-black/50">
+      {/* Spinning reel wrapper with overflow-hidden */}
+      <div className="absolute inset-0 w-full h-full overflow-hidden rounded-md">
+        {/* Spinning reel */}
+        <div
+          className={`flex flex-col absolute top-0 left-0 w-full ${isSpinning ? 'reel-spinning' : ''}`}
+          style={isSpinning ? {} : { 
+            transform: `translateY(${finalPosition}px)`,
+            transition: `transform ${REEL_SPIN_DURATION}ms ease-out`,
+          }}
+          onTransitionEnd={handleTransitionEnd}
+        >
+           {reel.map((symbol, index) => (
+             <SlotSymbolView key={`spinning-${index}`} symbol={symbol} isWinning={false} />
+           ))}
+        </div>
       </div>
       {/* Static overlay for displaying results without moving with the reel */}
       {showResult && !isSpinning && (
