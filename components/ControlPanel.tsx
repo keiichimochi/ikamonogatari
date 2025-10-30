@@ -60,51 +60,48 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ credits, bet, onBetChange, 
           </div>
         </div>
 
-        {/* Spin Button */}
+        {/* Spin/Stop Button */}
         <div className="col-span-3 sm:col-span-1 mt-2 sm:mt-0 flex items-center justify-center">
-          <button
-            onClick={onSpin}
-            disabled={buttonDisabled}
-            className={`
-              w-full sm:w-32 md:w-36 h-14 sm:h-16 md:h-20 rounded-lg font-game text-lg sm:text-xl md:text-2xl
-              transition-all duration-200 ease-in-out
-              border-b-4 
-              ${
-                buttonDisabled
-                  ? 'bg-gray-600 text-gray-400 border-gray-800 cursor-not-allowed'
-                  : 'bg-green-500 hover:bg-green-400 text-white border-green-700 hover:border-green-600 active:border-b-0 active:translate-y-1 transform'
-              }
-              ${!isSpinning && canSpin ? 'animate-pulse' : ''}
-              shadow-lg
-            `}
-          >
-            SPIN
-          </button>
+          {isSpinning ? (
+            <button
+              onClick={onStopNextReel}
+              disabled={!canStopNext}
+              className={`
+                w-full sm:w-32 md:w-36 h-14 sm:h-16 md:h-20 rounded-lg font-game text-lg sm:text-xl md:text-2xl
+                transition-all duration-200 ease-in-out
+                border-b-4 
+                ${
+                  !canStopNext
+                    ? 'bg-gray-600 text-gray-400 border-gray-800 cursor-not-allowed'
+                    : 'bg-orange-500 hover:bg-orange-400 text-white border-orange-700 hover:border-orange-600 active:border-b-0 active:translate-y-1 transform'
+                }
+                shadow-lg
+              `}
+            >
+              STOP
+            </button>
+          ) : (
+            <button
+              onClick={onSpin}
+              disabled={!canSpin}
+              className={`
+                w-full sm:w-32 md:w-36 h-14 sm:h-16 md:h-20 rounded-lg font-game text-lg sm:text-xl md:text-2xl
+                transition-all duration-200 ease-in-out
+                border-b-4 
+                ${
+                  !canSpin
+                    ? 'bg-gray-600 text-gray-400 border-gray-800 cursor-not-allowed'
+                    : 'bg-green-500 hover:bg-green-400 text-white border-green-700 hover:border-green-600 active:border-b-0 active:translate-y-1 transform'
+                }
+                ${canSpin ? 'animate-pulse' : ''}
+                shadow-lg
+              `}
+            >
+              SPIN
+            </button>
+          )}
         </div>
       </div>
-      
-      {/* Stop Next Reel Button */}
-      {isSpinning && (
-        <div className="mt-2 sm:mt-4 flex items-center justify-center">
-          <button
-            onClick={onStopNextReel}
-            disabled={!canStopNext}
-            className={`
-              w-full sm:w-32 md:w-36 h-12 sm:h-14 md:h-16 rounded-lg font-game text-base sm:text-lg md:text-xl
-              transition-all duration-200 ease-in-out
-              border-b-4 
-              ${
-                !canStopNext
-                  ? 'bg-gray-600 text-gray-400 border-gray-800 cursor-not-allowed'
-                  : 'bg-orange-500 hover:bg-orange-400 text-white border-orange-700 hover:border-orange-600 active:border-b-0 active:translate-y-1 transform'
-              }
-              shadow-lg
-            `}
-          >
-            STOP
-          </button>
-        </div>
-      )}
     </div>
   );
 };

@@ -66,13 +66,51 @@
           opacity: 0;
         }
       }
+      @keyframes winning-scale-pop {
+        0% {
+          transform: scale(1);
+        }
+        20% {
+          transform: scale(1.27);
+        }
+        40% {
+          transform: scale(1.23);
+        }
+        60% {
+          transform: scale(1.27);
+        }
+        80% {
+          transform: scale(1.27);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+      @keyframes winning-scale-pulse {
+        0% {
+          transform: scale(1.27);
+        }
+        50% {
+          transform: scale(1.35);
+        }
+        100% {
+          transform: scale(1.27);
+        }
+      }
       .winning-symbol {
-        animation: win-expand 0.8s ease-in-out infinite,
-                   win-glow 1s ease-in-out infinite;
+        animation: win-glow 1s ease-in-out infinite;
         z-index: 50;
       }
       .winning-glow {
         animation: win-glow 1s ease-in-out infinite;
+      }
+      .winning-scale-outer {
+        transform-origin: center;
+        animation: winning-scale-pop 3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        animation-fill-mode: forwards;
+      }
+      .winning-scale-inner {
+        transform-origin: center;
       }
       /* Reel spinning animation */
       @keyframes reel-spin {
@@ -85,6 +123,18 @@
       }
       .reel-spinning {
         animation: reel-spin 0.075s linear infinite;
+      }
+      /* Game Over animation */
+      @keyframes game-over-scroll {
+        0% {
+          transform: translateX(100vw);
+        }
+        100% {
+          transform: translateX(-100vw);
+        }
+      }
+      .game-over-text {
+        animation: game-over-scroll 3s linear;
       }
     </style>
   <script type="importmap">

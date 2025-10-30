@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { SYMBOLS, REEL_COUNT, VISIBLE_SYMBOLS, INITIAL_CREDITS, BET_AMOUNTS, PAYLINES, PAYLINES_3_LEFT, PAYLINES_3_MIDDLE, PAYLINES_3_RIGHT, REEL_SPIN_DURATION, REEL_STOP_DELAY, WIN_ANIMATION_DURATION } from './constants';
+import { SYMBOLS, REEL_COUNT, VISIBLE_SYMBOLS, INITIAL_CREDITS, BET_AMOUNTS, REEL_SPIN_DURATION, REEL_STOP_DELAY, WIN_ANIMATION_DURATION } from './constants';
 import type { SlotSymbolInfo, Reel, GameState, WinningLine } from './types';
 import { GameState as GameStateEnum } from './types';
 import ReelComponent from './components/Reel';
@@ -28,12 +28,25 @@ const App: React.FC = () => {
     const [nextStopIndex, setNextStopIndex] = useState(0);
     const [showOops, setShowOops] = useState(false);
     const [oopsImage, setOopsImage] = useState<string | null>(null);
+    const [showGameOver, setShowGameOver] = useState(false);
     
     // Audio refs
     const backgroundMusicRef = React.useRef<HTMLAudioElement | null>(null);
     const winSoundRef = React.useRef<HTMLAudioElement | null>(null);
     
-    const currentBet = BET_AMOUNTS[betIndex];
+    // Calculate current bet based on credits
+    // If credits > 1000, bet is 200, otherwise 100
+    const currentBet = useMemo(() => {
+        return credits > 1000 ? BET_AMOUNTS[1] : BET_AMOUNTS[0];
+    }, [credits]);
+    
+    // Auto-adjust bet index based on credits
+    useEffect(() => {
+        const newBetIndex = credits > 1000 ? 1 : 0;
+        if (betIndex !== newBetIndex) {
+            setBetIndex(newBetIndex);
+        }
+    }, [credits, betIndex]);
 
     // Initialize background music on component mount
     useEffect(() => {
@@ -76,8 +89,15 @@ const App: React.FC = () => {
         winSoundRef.current.volume = 0.7;
     }, []);
 
+    // Check for game over when credits drop below 100
+    useEffect(() => {
+        if (credits < 100 && gameState === GameStateEnum.IDLE && !showGameOver) {
+            setShowGameOver(true);
+        }
+    }, [credits, gameState, showGameOver]);
+
     const handleSpin = () => {
-        if (gameState !== GameStateEnum.IDLE || credits < currentBet) return;
+        if (gameState !== GameStateEnum.IDLE || credits < currentBet || showGameOver) return;
 
         setGameState(GameStateEnum.SPINNING);
         setCredits(prev => prev - currentBet);
@@ -120,17 +140,31 @@ const App: React.FC = () => {
             return reels[reelIdx].slice(finalIndex, finalIndex + VISIBLE_SYMBOLS);
         });
 
+        const rows = VISIBLE_SYMBOLS;
+        const cols = REEL_COUNT;
+
+        // Debug: Log final reel matrix
+        console.log('=== Win Check Debug ===');
+        console.log('Final Reel Matrix:', finalReelsMatrix.map((reel, idx) =>
+            `Reel ${idx}: [${reel.map(s => s.name).join(', ')}]`
+        ).join('\n'));
+
         let totalWinnings = 0;
         const newWinningLines: WinningLine[] = [];
+        let lineCounter = 0;
 
-        const applyWin = (
-            lineIndex: number,
-            symbol: SlotSymbolInfo,
-            matchCount: number,
-            positions: Array<{ reelIndex: number; rowIndex: number }>
-        ) => {
-            const basePayout = symbol.payouts[matchCount] || 0;
+        const getSymbol = (col: number, row: number) => {
+            if (col < 0 || col >= cols || row < 0 || row >= rows) {
+                return null;
+            }
+            return finalReelsMatrix[col]?.[row] ?? null;
+        };
+
+        const registerWin = (kind: string, symbol: SlotSymbolInfo, positions: Array<{ reelIndex: number; rowIndex: number }>) => {
+            const count = positions.length;
+            const basePayout = symbol.payouts[count] || 0;
             if (basePayout <= 0) {
+                console.log(`[${kind}] Symbol ${symbol.name} matched ${count} but has no payout.`);
                 return;
             }
 
@@ -141,84 +175,145 @@ const App: React.FC = () => {
 
             totalWinnings += payout;
             newWinningLines.push({
-                lineIndex,
+                lineIndex: lineCounter++,
                 symbolId: symbol.id,
-                count: matchCount,
+                count,
                 payout,
                 positions,
             });
+            console.log(`[${kind}] Symbol: ${symbol.name}, Count: ${count}, Payout: ${payout}, Positions:`, positions);
         };
 
-        // Check 5-column paylines (lineIndex 0-4)
-        PAYLINES.forEach((line, lineIndex) => {
-            const firstSymbol = finalReelsMatrix[0][line[0]];
-            if (!firstSymbol) {
-                return;
+        // Horizontal checks
+        for (let row = 0; row < rows; row++) {
+            let col = 0;
+            while (col < cols) {
+                const symbol = getSymbol(col, row);
+                if (!symbol) {
+                    col++;
+                    continue;
+                }
+
+                const positions: Array<{ reelIndex: number; rowIndex: number }> = [{ reelIndex: col, rowIndex: row }];
+                let nextCol = col + 1;
+                while (nextCol < cols) {
+                    const nextSymbol = getSymbol(nextCol, row);
+                    if (!nextSymbol || nextSymbol.id !== symbol.id) {
+                        break;
+                    }
+                    positions.push({ reelIndex: nextCol, rowIndex: row });
+                    nextCol++;
+                }
+
+                if (positions.length >= 3) {
+                    registerWin(`Horizontal Row ${row}`, symbol, positions);
+                }
+
+                col = nextCol;
             }
+        }
 
-            const positions: Array<{ reelIndex: number; rowIndex: number }> = [
-                { reelIndex: 0, rowIndex: line[0] },
-            ];
-            let matchCount = 1;
+        // Vertical checks
+        for (let col = 0; col < cols; col++) {
+            let row = 0;
+            while (row < rows) {
+                const symbol = getSymbol(col, row);
+                if (!symbol) {
+                    row++;
+                    continue;
+                }
 
-            for (let i = 1; i < REEL_COUNT; i++) {
-                const candidate = finalReelsMatrix[i][line[i]];
-                if (candidate.id === firstSymbol.id) {
-                    matchCount++;
-                    positions.push({ reelIndex: i, rowIndex: line[i] });
-                } else {
-                    break;
+                const positions: Array<{ reelIndex: number; rowIndex: number }> = [{ reelIndex: col, rowIndex: row }];
+                let nextRow = row + 1;
+                while (nextRow < rows) {
+                    const nextSymbol = getSymbol(col, nextRow);
+                    if (!nextSymbol || nextSymbol.id !== symbol.id) {
+                        break;
+                    }
+                    positions.push({ reelIndex: col, rowIndex: nextRow });
+                    nextRow++;
+                }
+
+                if (positions.length >= 3) {
+                    registerWin(`Vertical Reel ${col}`, symbol, positions);
+                }
+
+                row = nextRow;
+            }
+        }
+
+        // Diagonal checks (top-left to bottom-right)
+        for (let col = 0; col < cols; col++) {
+            for (let row = 0; row < rows; row++) {
+                const symbol = getSymbol(col, row);
+                if (!symbol) {
+                    continue;
+                }
+
+                const prevSymbol = getSymbol(col - 1, row - 1);
+                if (prevSymbol && prevSymbol.id === symbol.id) {
+                    continue; // Already part of a previously counted diagonal
+                }
+
+                const positions: Array<{ reelIndex: number; rowIndex: number }> = [{ reelIndex: col, rowIndex: row }];
+                let nextCol = col + 1;
+                let nextRow = row + 1;
+                while (nextCol < cols && nextRow < rows) {
+                    const nextSymbol = getSymbol(nextCol, nextRow);
+                    if (!nextSymbol || nextSymbol.id !== symbol.id) {
+                        break;
+                    }
+                    positions.push({ reelIndex: nextCol, rowIndex: nextRow });
+                    nextCol++;
+                    nextRow++;
+                }
+
+                if (positions.length >= 3) {
+                    registerWin(`Diagonal ↘ start (${col}, ${row})`, symbol, positions);
                 }
             }
+        }
 
-            if (matchCount >= 3) {
-                applyWin(lineIndex, firstSymbol, matchCount, positions);
-            }
-        });
+        // Diagonal checks (bottom-left to top-right)
+        for (let col = 0; col < cols; col++) {
+            for (let row = 0; row < rows; row++) {
+                const symbol = getSymbol(col, row);
+                if (!symbol) {
+                    continue;
+                }
 
-        const evaluateThreeColumnPayline = (
-            line: number[],
-            startReel: number,
-            globalLineIndex: number
-        ) => {
-            const firstSymbol = finalReelsMatrix[startReel][line[0]];
-            if (!firstSymbol) {
-                return;
-            }
+                const prevSymbol = getSymbol(col - 1, row + 1);
+                if (prevSymbol && prevSymbol.id === symbol.id) {
+                    continue; // Already counted in this diagonal direction
+                }
 
-            const positions: Array<{ reelIndex: number; rowIndex: number }> = [
-                { reelIndex: startReel, rowIndex: line[0] },
-            ];
-            let matchCount = 1;
+                const positions: Array<{ reelIndex: number; rowIndex: number }> = [{ reelIndex: col, rowIndex: row }];
+                let nextCol = col + 1;
+                let nextRow = row - 1;
+                while (nextCol < cols && nextRow >= 0) {
+                    const nextSymbol = getSymbol(nextCol, nextRow);
+                    if (!nextSymbol || nextSymbol.id !== symbol.id) {
+                        break;
+                    }
+                    positions.push({ reelIndex: nextCol, rowIndex: nextRow });
+                    nextCol++;
+                    nextRow--;
+                }
 
-            for (let offset = 1; offset < 3; offset++) {
-                const reelIndex = startReel + offset;
-                const candidate = finalReelsMatrix[reelIndex][line[offset]];
-                if (candidate.id === firstSymbol.id) {
-                    matchCount++;
-                    positions.push({ reelIndex, rowIndex: line[offset] });
-                } else {
-                    break;
+                if (positions.length >= 3) {
+                    registerWin(`Diagonal ↗ start (${col}, ${row})`, symbol, positions);
                 }
             }
+        }
 
-            if (matchCount === 3) {
-                applyWin(globalLineIndex, firstSymbol, matchCount, positions);
-            }
-        };
-
-        // Check 3-column paylines
-        PAYLINES_3_LEFT.forEach((line, localIndex) => {
-            evaluateThreeColumnPayline(line, 0, 5 + localIndex);
-        });
-
-        PAYLINES_3_MIDDLE.forEach((line, localIndex) => {
-            evaluateThreeColumnPayline(line, 1, 10 + localIndex);
-        });
-
-        PAYLINES_3_RIGHT.forEach((line, localIndex) => {
-            evaluateThreeColumnPayline(line, 2, 15 + localIndex);
-        });
+        // Debug: Log winning lines summary
+        console.log(`Total Winning Lines: ${newWinningLines.length}`);
+        if (newWinningLines.length > 0) {
+            newWinningLines.forEach((win, idx) => {
+                console.log(`  Win ${idx + 1}: LineIndex=${win.lineIndex}, Symbol=${win.symbolId}, Count=${win.count}, Payout=${win.payout}, Positions:`, win.positions);
+            });
+        }
+        console.log(`Total Winnings: ${totalWinnings}`);
 
         if (totalWinnings > 0) {
             setLastWin(totalWinnings);
@@ -234,6 +329,7 @@ const App: React.FC = () => {
                 });
             }
         } else {
+            console.log('No wins detected');
             // Show random oops image when no win
             const oopsImages = [
                 '/images/oops/atama.png',
@@ -246,7 +342,17 @@ const App: React.FC = () => {
             setOopsImage(randomImage);
             setShowOops(true);
         }
+        
+        console.log('=== End Win Check ===');
 
+        if (totalWinnings > 0) {
+            // Clear winning lines after animation duration to stop the visual effects
+            setTimeout(() => {
+                setWinningLines([]);
+                console.log('Clearing winning lines after animation');
+            }, WIN_ANIMATION_DURATION);
+        }
+        
         setTimeout(() => {
             setGameState(GameStateEnum.IDLE);
         }, totalWinnings > 0 ? WIN_ANIMATION_DURATION : 0);
@@ -271,6 +377,30 @@ const App: React.FC = () => {
             return () => clearTimeout(timer);
         }
     }, [showOops]);
+
+    // Handle game over animation and reset
+    useEffect(() => {
+        if (showGameOver) {
+            const timer = setTimeout(() => {
+                // Reset game state
+                setCredits(INITIAL_CREDITS);
+                setGameState(GameStateEnum.IDLE);
+                setLastWin(null);
+                setWinningLines([]);
+                setShowOops(false);
+                setOopsImage(null);
+                setShowGameOver(false);
+                setNextStopIndex(0);
+                // Reset reels
+                const newReels = Array(REEL_COUNT).fill(0).map(generateReel);
+                setReels(newReels);
+                setFinalSymbolIndexes(Array(REEL_COUNT).fill(0));
+                setSpinningReels(Array(REEL_COUNT).fill(false));
+                console.log('Game reset: Credits reset to 500');
+            }, 3000); // Wait for animation to complete
+            return () => clearTimeout(timer);
+        }
+    }, [showGameOver]);
 
     const handleBetChange = (direction: 'up' | 'down') => {
         if (gameState !== GameStateEnum.IDLE) return;
@@ -330,6 +460,16 @@ const App: React.FC = () => {
                             alt="Oops" 
                             className="max-w-[80%] sm:max-w-[60%] md:max-w-[50%] h-auto animate-pulse"
                         />
+                    </div>
+                )}
+                
+                {showGameOver && (
+                    <div className="absolute inset-0 bg-red-600/90 pointer-events-none z-40 flex items-center justify-center overflow-hidden">
+                        <div className="game-over-text absolute whitespace-nowrap">
+                            <p className="text-4xl sm:text-6xl md:text-8xl font-game text-white drop-shadow-[0_4px_4px_rgba(0,0,0,1)]">
+                                GAME OVER
+                            </p>
+                        </div>
                     </div>
                 )}
                 

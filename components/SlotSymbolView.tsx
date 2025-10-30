@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { SlotSymbolInfo } from '../types';
 
 interface SlotSymbolViewProps {
@@ -10,10 +10,17 @@ interface SlotSymbolViewProps {
 const SlotSymbolView: React.FC<SlotSymbolViewProps> = ({ symbol, isWinning }) => {
   const [imageError, setImageError] = useState(false);
   const isImageAsset = symbol.asset.startsWith('/images/');
+  
+  // Debug: Log winning state
+  useEffect(() => {
+    if (isWinning) {
+      console.log(`[SlotSymbolView] 🎉 Symbol "${symbol.name}" (${symbol.id}) is marked as winning`);
+    }
+  }, [isWinning, symbol]);
 
   return (
-    <div className="h-[80px] sm:h-[90px] md:h-[100px] flex-shrink-0 flex items-center justify-center transition-all duration-300">
-      <div className={`relative flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 md:w-20 md:h-20 ${isWinning ? 'winning-symbol' : ''}`}>
+    <div className={`h-[80px] sm:h-[90px] md:h-[100px] flex-shrink-0 flex items-center justify-center transition-all duration-300 ${isWinning ? 'winning-scale-outer' : ''}`}>
+      <div className={`relative flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 md:w-20 md:h-20 ${isWinning ? 'winning-symbol winning-scale-inner' : ''}`}>
         {/* Multiple glow layers for more dramatic effect */}
         {isWinning && (
           <>

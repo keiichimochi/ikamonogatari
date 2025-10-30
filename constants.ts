@@ -4,12 +4,12 @@ import type { SlotSymbolInfo } from './types';
 // To customize symbols, change the 'asset' property.
 // For example, replace '🦑' with '/images/squid.png'.
 export const SYMBOLS: SlotSymbolInfo[] = [
-  { id: 'treasure', name: 'Treasure', asset: '/images/ooto.png', payouts: { 3: 33333, 4: 55555, 5: 77777 } },
-  { id: 'octopus', name: 'Octopus', asset: '/images/yasuo.png', payouts: { 3: 1000, 4: 5000, 5: 20000 } },
-  { id: 'crab', name: 'Crab', asset: '/images/ika.png', payouts: { 3: 500, 4: 2500, 5: 10000 } },
-  { id: 'shrimp', name: 'Shrimp', asset: '/images/tori.png', payouts: { 3: 200, 4: 1000, 5: 5000 } },
-  { id: 'squid', name: 'Squid', asset: '/images/abebe.png', payouts: { 3: 100, 4: 500, 5: 2000 } },
-  { id: 'fish', name: 'Fish', asset: '/images/kiyo.png', payouts: { 3: 1, 4: 2, 5: 3 } },
+  { id: 'ooto', name: 'ooto', asset: '/images/ooto.png', payouts: { 3: 777, 4: 7777, 5: 77777 } },
+  { id: 'yasuo', name: 'yasuo', asset: '/images/yasuo.png', payouts: { 3: 800, 4: 1500, 5: 50000 } },
+  { id: 'ika', name: 'ika', asset: '/images/ika.png', payouts: { 3: 150, 4: 2400, 5: 10000 } },
+  { id: 'tori', name: 'tori', asset: '/images/tori.png', payouts: { 3: 100, 4: 3000, 5: 5000} },
+  { id: 'abebe', name: 'abebe', asset: '/images/abebe.png', payouts: { 3: 50, 4: 2000, 5: 1000 } },
+  { id: 'kiyo', name: 'kiyo', asset: '/images/kiyo.png', payouts: { 3: 1, 4: 2, 5: 3 } },
 ];
 
 export const REEL_COUNT = 5;
@@ -84,10 +84,10 @@ export const ALL_PAYLINES: (number | null)[][] = [
   [null, null, 2, 1, 0], // Diagonal down (right 3)
 ];
 
-export const INITIAL_CREDITS = 1000;
-export const BET_AMOUNTS = [100];
+export const INITIAL_CREDITS = 500;
+export const BET_AMOUNTS = [100, 200];
 
 // Durations in milliseconds
 export const REEL_SPIN_DURATION = 1000;
 export const REEL_STOP_DELAY = 200; // Staggered stop delay between reels
-export const WIN_ANIMATION_DURATION = 2000; // How long to show win results before enabling spin again
+export const WIN_ANIMATION_DURATION = 3000; // How long to show win results before enabling spin again
