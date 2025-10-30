@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { SYMBOLS, REEL_COUNT, VISIBLE_SYMBOLS, INITIAL_CREDITS, BET_AMOUNTS, PAYLINES, REEL_SPIN_DURATION, REEL_STOP_DELAY, WIN_ANIMATION_DURATION } from './constants';
+import { SYMBOLS, REEL_COUNT, VISIBLE_SYMBOLS, INITIAL_CREDITS, BET_AMOUNTS, PAYLINES, PAYLINES_3_LEFT, PAYLINES_3_MIDDLE, PAYLINES_3_RIGHT, REEL_SPIN_DURATION, REEL_STOP_DELAY, WIN_ANIMATION_DURATION } from './constants';
 import type { SlotSymbolInfo, Reel, GameState, WinningLine } from './types';
 import { GameState as GameStateEnum } from './types';
 import ReelComponent from './components/Reel';
@@ -25,7 +25,37 @@ const App: React.FC = () => {
     const [lastWin, setLastWin] = useState<number | null>(null);
     const [winningLines, setWinningLines] = useState<WinningLine[]>([]);
     
+    // Audio refs
+    const backgroundMusicRef = React.useRef<HTMLAudioElement | null>(null);
+    const winSoundRef = React.useRef<HTMLAudioElement | null>(null);
+    
     const currentBet = BET_AMOUNTS[betIndex];
+
+    // Initialize background music on component mount
+    useEffect(() => {
+        backgroundMusicRef.current = new Audio('/sounds/casino.mp3');
+        backgroundMusicRef.current.loop = true;
+        backgroundMusicRef.current.volume = 0.5;
+        
+        // Play background music when component mounts
+        backgroundMusicRef.current.play().catch(err => {
+            console.log('Background music play failed:', err);
+        });
+
+        // Cleanup on unmount
+        return () => {
+            if (backgroundMusicRef.current) {
+                backgroundMusicRef.current.pause();
+                backgroundMusicRef.current = null;
+            }
+        };
+    }, []);
+
+    // Initialize win sound
+    useEffect(() => {
+        winSoundRef.current = new Audio('/sounds/Levelup.mp3');
+        winSoundRef.current.volume = 0.7;
+    }, []);
 
     const handleSpin = () => {
         if (gameState !== GameStateEnum.IDLE || credits < currentBet) return;
@@ -35,7 +65,12 @@ const App: React.FC = () => {
         setLastWin(null);
         setWinningLines([]);
         
-        const newFinalIndexes = reels.map(reel => Math.floor(Math.random() * (reel.length - VISIBLE_SYMBOLS)));
+        // Generate new reels for each spin
+        const newReels = Array(REEL_COUNT).fill(0).map(generateReel);
+        setReels(newReels);
+        
+        // Calculate final positions based on new reels
+        const newFinalIndexes = newReels.map(reel => Math.floor(Math.random() * (reel.length - VISIBLE_SYMBOLS)));
         setFinalSymbolIndexes(newFinalIndexes);
 
         const newSpinningReels = Array(REEL_COUNT).fill(true);
@@ -60,8 +95,10 @@ const App: React.FC = () => {
 
         let totalWinnings = 0;
         const newWinningLines: WinningLine[] = [];
+        let lineIndexCounter = 0;
 
-        PAYLINES.forEach((line, lineIndex) => {
+        // Check 5-column paylines
+        PAYLINES.forEach((line) => {
             const firstSymbol = finalReelsMatrix[0][line[0]];
             let matchCount = 1;
             for (let i = 1; i < REEL_COUNT; i++) {
@@ -76,7 +113,70 @@ const App: React.FC = () => {
                 const payout = (firstSymbol.payouts[matchCount] || 0) * (currentBet / BET_AMOUNTS[0]);
                 if (payout > 0) {
                     totalWinnings += payout;
-                    newWinningLines.push({ lineIndex, symbolId: firstSymbol.id, count: matchCount, payout });
+                    newWinningLines.push({ lineIndex: lineIndexCounter++, symbolId: firstSymbol.id, count: matchCount, payout });
+                }
+            }
+        });
+
+        // Check 3-column paylines (left side: columns 0-2)
+        PAYLINES_3_LEFT.forEach((line) => {
+            const firstSymbol = finalReelsMatrix[0][line[0]];
+            let matchCount = 1;
+            for (let i = 1; i < 3; i++) {
+                if (finalReelsMatrix[i][line[i]].id === firstSymbol.id) {
+                    matchCount++;
+                } else {
+                    break;
+                }
+            }
+
+            if (matchCount >= 3) {
+                const payout = (firstSymbol.payouts[matchCount] || 0) * (currentBet / BET_AMOUNTS[0]);
+                if (payout > 0) {
+                    totalWinnings += payout;
+                    newWinningLines.push({ lineIndex: lineIndexCounter++, symbolId: firstSymbol.id, count: matchCount, payout });
+                }
+            }
+        });
+
+        // Check 3-column paylines (middle: columns 1-3)
+        PAYLINES_3_MIDDLE.forEach((line) => {
+            const firstSymbol = finalReelsMatrix[1][line[0]];
+            let matchCount = 1;
+            for (let i = 1; i < 3; i++) {
+                if (finalReelsMatrix[i + 1][line[i]].id === firstSymbol.id) {
+                    matchCount++;
+                } else {
+                    break;
+                }
+            }
+
+            if (matchCount >= 3) {
+                const payout = (firstSymbol.payouts[matchCount] || 0) * (currentBet / BET_AMOUNTS[0]);
+                if (payout > 0) {
+                    totalWinnings += payout;
+                    newWinningLines.push({ lineIndex: lineIndexCounter++, symbolId: firstSymbol.id, count: matchCount, payout });
+                }
+            }
+        });
+
+        // Check 3-column paylines (right side: columns 2-4)
+        PAYLINES_3_RIGHT.forEach((line) => {
+            const firstSymbol = finalReelsMatrix[2][line[0]];
+            let matchCount = 1;
+            for (let i = 1; i < 3; i++) {
+                if (finalReelsMatrix[i + 2][line[i]].id === firstSymbol.id) {
+                    matchCount++;
+                } else {
+                    break;
+                }
+            }
+
+            if (matchCount >= 3) {
+                const payout = (firstSymbol.payouts[matchCount] || 0) * (currentBet / BET_AMOUNTS[0]);
+                if (payout > 0) {
+                    totalWinnings += payout;
+                    newWinningLines.push({ lineIndex: lineIndexCounter++, symbolId: firstSymbol.id, count: matchCount, payout });
                 }
             }
         });
@@ -85,6 +185,14 @@ const App: React.FC = () => {
             setLastWin(totalWinnings);
             setCredits(prev => prev + totalWinnings);
             setWinningLines(newWinningLines);
+            
+            // Play win sound
+            if (winSoundRef.current) {
+                winSoundRef.current.currentTime = 0;
+                winSoundRef.current.play().catch(err => {
+                    console.log('Win sound play failed:', err);
+                });
+            }
         }
 
         setTimeout(() => {
