@@ -45,9 +45,11 @@ const App: React.FC = () => {
     const winSoundRef = React.useRef<HTMLAudioElement | null>(null);
     
     // Calculate current bet based on betIndex (ユーザーが選択したBETを使用)
+    // クレジットがBETより少ない場合は、クレジット全額をBETとして使用
     const currentBet = useMemo(() => {
-        return BET_AMOUNTS[betIndex];
-    }, [betIndex]);
+        const selectedBet = BET_AMOUNTS[betIndex];
+        return Math.min(selectedBet, credits);
+    }, [betIndex, credits]);
     
     // Auto-adjust bet index based on credits (一度上がったBETは下がらない)
     useEffect(() => {
@@ -121,14 +123,19 @@ const App: React.FC = () => {
         winSoundRef.current.volume = 0.7;
     }, []);
 
-    // Check for game over when credits drop below 100
+    // Check for game over when credits drop below minimum bet
     useEffect(() => {
-        if (credits < 100 && gameState === GameStateEnum.IDLE && !showGameOver) {
-            setShowGameOver(true);
+        const minimumBet = BET_AMOUNTS[0]; // 最低BET（100）
+        // クレジットが最低BET未満の場合はゲームオーバー
+        if (gameState === GameStateEnum.IDLE && !showGameOver) {
+            if (credits < minimumBet) {
+                setShowGameOver(true);
+            }
         }
     }, [credits, gameState, showGameOver]);
 
     const handleSpin = () => {
+        // currentBetは常にcredits以下になるので、credits < currentBetのチェックは実質不要だが、安全のため残す
         if (gameState !== GameStateEnum.IDLE || credits < currentBet || showGameOver) return;
 
         setGameState(GameStateEnum.SPINNING);
