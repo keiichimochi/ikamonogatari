@@ -43,26 +43,26 @@ const ReelComponent: React.FC<ReelProps> = ({ reel, isSpinning, finalSymbolIndex
       
       // Determine the range of reels this payline covers
       let startReel = 0;
-      let endReel = REEL_COUNT - 1;
+      let reelCount = 5; // 5-column payline by default
       
       if (win.lineIndex >= 5 && win.lineIndex < 10) {
           // 3-column left payline (reels 0-2)
           startReel = 0;
-          endReel = 2;
+          reelCount = 3;
       } else if (win.lineIndex >= 10 && win.lineIndex < 15) {
           // 3-column middle payline (reels 1-3)
           startReel = 1;
-          endReel = 3;
+          reelCount = 3;
       } else if (win.lineIndex >= 15 && win.lineIndex < 20) {
           // 3-column right payline (reels 2-4)
           startReel = 2;
-          endReel = 4;
+          reelCount = 3;
       }
-      // else: 5-column payline (reels 0-4)
       
       // Only highlight if this reel is within the payline range
-      // and within the actual match count
-      if (reelIndex >= startReel && reelIndex < startReel + win.count) {
+      // and within the actual match count (the number of consecutive matching symbols starting from startReel)
+      const reelOffset = reelIndex - startReel;
+      if (reelOffset >= 0 && reelOffset < win.count && reelIndex < startReel + reelCount) {
           winningSymbolIndices.add(symbolRowIndex);
       }
   });
@@ -77,10 +77,10 @@ const ReelComponent: React.FC<ReelProps> = ({ reel, isSpinning, finalSymbolIndex
     <div className="relative h-[300px] w-full bg-blue-900/50 overflow-hidden rounded-md border-2 border-yellow-500/50 shadow-inner shadow-black/50">
       {/* Spinning reel */}
       <div
-        className="flex flex-col absolute top-0 left-0 w-full"
-        style={{ 
-          transform: isSpinning ? 'translateY(-10000px)' : `translateY(${finalPosition}px)`,
-          transition: isSpinning ? 'none' : `transform ${REEL_SPIN_DURATION}ms ease-out`,
+        className={`flex flex-col absolute top-0 left-0 w-full ${isSpinning ? 'reel-spinning' : ''}`}
+        style={isSpinning ? {} : { 
+          transform: `translateY(${finalPosition}px)`,
+          transition: `transform ${REEL_SPIN_DURATION}ms ease-out`,
         }}
         onTransitionEnd={handleTransitionEnd}
       >

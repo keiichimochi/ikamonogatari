@@ -7,8 +7,8 @@ export const SYMBOLS: SlotSymbolInfo[] = [
   { id: 'treasure', name: 'Treasure', asset: '/images/tori.png', payouts: { 3: 100, 4: 500, 5: 2000 } },
   { id: 'octopus', name: 'Octopus', asset: '/images/abebe.png', payouts: { 3: 50, 4: 200, 5: 800 } },
   { id: 'crab', name: 'Crab', asset: '/images/yasuo.png', payouts: { 3: 20, 4: 80, 5: 800 } },
-  { id: 'shrimp', name: 'Shrimp', asset: '/images/kiyoshi.jpg', payouts: { 3: 10, 4: 40, 5: 150 } },
-  { id: 'squid', name: 'Squid', asset: '🦑', payouts: { 3: 5, 4: 20, 5: 2000 } },
+  { id: 'shrimp', name: 'Shrimp', asset: '/images/kiyo.png', payouts: { 3: 10, 4: 40, 5: 150 } },
+  { id: 'squid', name: 'Squid', asset: '/images/ika.png', payouts: { 3: 5, 4: 20, 5: 2000 } },
   { id: 'fish', name: 'Fish', asset: '/images/ooto.png', payouts: { 3: 2, 4: 10, 5: 40 } },
 ];
 
@@ -85,7 +85,7 @@ export const ALL_PAYLINES: (number | null)[][] = [
 ];
 
 export const INITIAL_CREDITS = 1000;
-export const BET_AMOUNTS = [10, 20, 50, 100];
+export const BET_AMOUNTS = [100];
 
 // Durations in milliseconds
 export const REEL_SPIN_DURATION = 1000;

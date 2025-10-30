@@ -72,6 +72,18 @@
       .winning-glow {
         animation: win-glow 1s ease-in-out infinite;
       }
+      /* Reel spinning animation */
+      @keyframes reel-spin {
+        0% {
+          transform: translateY(-100px);
+        }
+        100% {
+          transform: translateY(0);
+        }
+      }
+      .reel-spinning {
+        animation: reel-spin 0.075s linear infinite;
+      }
     </style>
   <script type="importmap">
 {

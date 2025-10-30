@@ -8,54 +8,103 @@ interface ControlPanelProps {
   onSpin: () => void;
   isSpinning: boolean;
   canSpin: boolean;
+  musicOn: boolean;
+  onMusicToggle: () => void;
+  onStopNextReel: () => void;
+  canStopNext: boolean;
 }
 
-const ControlPanel: React.FC<ControlPanelProps> = ({ credits, bet, onBetChange, onSpin, isSpinning, canSpin }) => {
+const ControlPanel: React.FC<ControlPanelProps> = ({ credits, bet, onBetChange, onSpin, isSpinning, canSpin, musicOn, onMusicToggle, onStopNextReel, canStopNext }) => {
   const buttonDisabled = isSpinning || !canSpin;
 
   return (
-    <div className="mt-4 md:mt-6 grid grid-cols-3 gap-2 md:gap-4 items-center text-center">
-      {/* Credits Display */}
-      <div className="bg-black/50 rounded-lg p-2 border-2 border-yellow-600">
-        <p className="text-sm md:text-lg text-yellow-300 font-bold">CREDITS</p>
-        <p className="text-lg md:text-2xl font-game tracking-tighter">{credits}</p>
+    <div className="mt-4 md:mt-6">
+      {/* Music Toggle Button */}
+      <div className="flex justify-end mb-2">
+        <button
+          onClick={onMusicToggle}
+          className={`
+            px-3 py-1 md:px-4 md:py-2 rounded-lg text-sm md:text-base font-game
+            transition-all duration-200 ease-in-out
+            border-2
+            ${
+              musicOn
+                ? 'bg-yellow-500 hover:bg-yellow-400 text-white border-yellow-700 hover:border-yellow-600'
+                : 'bg-gray-600 hover:bg-gray-500 text-gray-300 border-gray-800 hover:border-gray-700'
+            }
+            active:scale-95 shadow-lg
+          `}
+        >
+          {musicOn ? '🔊 MUSIC ON' : '🔇 MUSIC OFF'}
+        </button>
       </div>
 
-      {/* Bet Controls */}
-      <div className="bg-black/50 rounded-lg p-2 border-2 border-yellow-600 flex flex-col items-center">
-        <p className="text-sm md:text-lg text-yellow-300 font-bold">BET</p>
-        <div className="flex items-center justify-center gap-2">
-          <button onClick={() => onBetChange('down')} disabled={isSpinning} className="text-lg md:text-2xl text-yellow-300 disabled:opacity-50 transition-transform active:scale-90">
-            -
-          </button>
-          <p className="text-lg md:text-2xl font-game tracking-tighter w-16">{bet}</p>
-          <button onClick={() => onBetChange('up')} disabled={isSpinning} className="text-lg md:text-2xl text-yellow-300 disabled:opacity-50 transition-transform active:scale-90">
-            +
+      <div className="grid grid-cols-3 gap-2 md:gap-4 items-center text-center">
+        {/* Credits Display */}
+        <div className="bg-black/50 rounded-lg p-2 border-2 border-yellow-600">
+          <p className="text-sm md:text-lg text-yellow-300 font-bold">CREDITS</p>
+          <p className="text-lg md:text-2xl font-game tracking-tighter">{credits}</p>
+        </div>
+
+        {/* Bet Controls */}
+        <div className="bg-black/50 rounded-lg p-2 border-2 border-yellow-600 flex flex-col items-center">
+          <p className="text-sm md:text-lg text-yellow-300 font-bold">BET</p>
+          <div className="flex items-center justify-center gap-2">
+            <button onClick={() => onBetChange('down')} disabled={isSpinning} className="text-lg md:text-2xl text-yellow-300 disabled:opacity-50 transition-transform active:scale-90">
+              -
+            </button>
+            <p className="text-lg md:text-2xl font-game tracking-tighter w-16">{bet}</p>
+            <button onClick={() => onBetChange('up')} disabled={isSpinning} className="text-lg md:text-2xl text-yellow-300 disabled:opacity-50 transition-transform active:scale-90">
+              +
+            </button>
+          </div>
+        </div>
+
+        {/* Spin Button */}
+        <div className="col-span-3 md:col-span-1 mt-2 md:mt-0 flex items-center justify-center">
+          <button
+            onClick={onSpin}
+            disabled={buttonDisabled}
+            className={`
+              w-full md:w-36 h-20 md:h-full rounded-lg font-game text-2xl
+              transition-all duration-200 ease-in-out
+              border-b-4 
+              ${
+                buttonDisabled
+                  ? 'bg-gray-600 text-gray-400 border-gray-800 cursor-not-allowed'
+                  : 'bg-green-500 hover:bg-green-400 text-white border-green-700 hover:border-green-600 active:border-b-0 active:translate-y-1 transform'
+              }
+              ${!isSpinning && canSpin ? 'animate-pulse' : ''}
+              shadow-lg
+            `}
+          >
+            SPIN
           </button>
         </div>
       </div>
-
-      {/* Spin Button */}
-      <div className="col-span-3 md:col-span-1 mt-2 md:mt-0 flex items-center justify-center">
-        <button
-          onClick={onSpin}
-          disabled={buttonDisabled}
-          className={`
-            w-full md:w-36 h-20 md:h-full rounded-lg font-game text-2xl
-            transition-all duration-200 ease-in-out
-            border-b-4 
-            ${
-              buttonDisabled
-                ? 'bg-gray-600 text-gray-400 border-gray-800 cursor-not-allowed'
-                : 'bg-green-500 hover:bg-green-400 text-white border-green-700 hover:border-green-600 active:border-b-0 active:translate-y-1 transform'
-            }
-            ${!isSpinning && canSpin ? 'animate-pulse' : ''}
-            shadow-lg
-          `}
-        >
-          SPIN
-        </button>
-      </div>
+      
+      {/* Stop Next Reel Button */}
+      {isSpinning && (
+        <div className="mt-4 flex items-center justify-center">
+          <button
+            onClick={onStopNextReel}
+            disabled={!canStopNext}
+            className={`
+              w-full md:w-36 h-16 rounded-lg font-game text-xl
+              transition-all duration-200 ease-in-out
+              border-b-4 
+              ${
+                !canStopNext
+                  ? 'bg-gray-600 text-gray-400 border-gray-800 cursor-not-allowed'
+                  : 'bg-orange-500 hover:bg-orange-400 text-white border-orange-700 hover:border-orange-600 active:border-b-0 active:translate-y-1 transform'
+              }
+              shadow-lg
+            `}
+          >
+            STOP
+          </button>
+        </div>
+      )}
     </div>
   );
 };

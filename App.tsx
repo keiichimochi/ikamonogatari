@@ -24,6 +24,8 @@ const App: React.FC = () => {
     const [gameState, setGameState] = useState<GameState>(GameStateEnum.IDLE);
     const [lastWin, setLastWin] = useState<number | null>(null);
     const [winningLines, setWinningLines] = useState<WinningLine[]>([]);
+    const [musicOn, setMusicOn] = useState(false);
+    const [nextStopIndex, setNextStopIndex] = useState(0);
     
     // Audio refs
     const backgroundMusicRef = React.useRef<HTMLAudioElement | null>(null);
@@ -38,9 +40,11 @@ const App: React.FC = () => {
         backgroundMusicRef.current.volume = 0.5;
         
         // Play background music when component mounts
-        backgroundMusicRef.current.play().catch(err => {
-            console.log('Background music play failed:', err);
-        });
+        if (musicOn) {
+            backgroundMusicRef.current.play().catch(err => {
+                console.log('Background music play failed:', err);
+            });
+        }
 
         // Cleanup on unmount
         return () => {
@@ -50,6 +54,19 @@ const App: React.FC = () => {
             }
         };
     }, []);
+
+    // Handle music on/off toggle
+    useEffect(() => {
+        if (backgroundMusicRef.current) {
+            if (musicOn) {
+                backgroundMusicRef.current.play().catch(err => {
+                    console.log('Background music play failed:', err);
+                });
+            } else {
+                backgroundMusicRef.current.pause();
+            }
+        }
+    }, [musicOn]);
 
     // Initialize win sound
     useEffect(() => {
@@ -64,6 +81,7 @@ const App: React.FC = () => {
         setCredits(prev => prev - currentBet);
         setLastWin(null);
         setWinningLines([]);
+        setNextStopIndex(0); // Reset stop index
         
         // Generate new reels for each spin
         const newReels = Array(REEL_COUNT).fill(0).map(generateReel);
@@ -73,19 +91,24 @@ const App: React.FC = () => {
         const newFinalIndexes = newReels.map(reel => Math.floor(Math.random() * (reel.length - VISIBLE_SYMBOLS)));
         setFinalSymbolIndexes(newFinalIndexes);
 
+        // Start all reels spinning (manual stop enabled)
         const newSpinningReels = Array(REEL_COUNT).fill(true);
         setSpinningReels(newSpinningReels);
+    };
 
-        // Stagger the stopping of the reels
-        for (let i = 0; i < REEL_COUNT; i++) {
-            setTimeout(() => {
-                setSpinningReels(prev => {
-                    const next = [...prev];
-                    next[i] = false;
-                    return next;
-                });
-            }, REEL_SPIN_DURATION + i * REEL_STOP_DELAY);
+    const handleStopNextReel = () => {
+        if (gameState !== GameStateEnum.SPINNING || nextStopIndex >= REEL_COUNT) {
+            return; // Only allow stopping if spinning and there are reels to stop
         }
+
+        // Stop the next reel from left to right
+        setSpinningReels(prev => {
+            const next = [...prev];
+            next[nextStopIndex] = false;
+            return next;
+        });
+        
+        setNextStopIndex(prev => prev + 1);
     };
     
     const checkWins = useCallback(() => {
@@ -95,10 +118,9 @@ const App: React.FC = () => {
 
         let totalWinnings = 0;
         const newWinningLines: WinningLine[] = [];
-        let lineIndexCounter = 0;
 
-        // Check 5-column paylines
-        PAYLINES.forEach((line) => {
+        // Check 5-column paylines (lineIndex 0-4)
+        PAYLINES.forEach((line, lineIndex) => {
             const firstSymbol = finalReelsMatrix[0][line[0]];
             let matchCount = 1;
             for (let i = 1; i < REEL_COUNT; i++) {
@@ -113,13 +135,13 @@ const App: React.FC = () => {
                 const payout = (firstSymbol.payouts[matchCount] || 0) * (currentBet / BET_AMOUNTS[0]);
                 if (payout > 0) {
                     totalWinnings += payout;
-                    newWinningLines.push({ lineIndex: lineIndexCounter++, symbolId: firstSymbol.id, count: matchCount, payout });
+                    newWinningLines.push({ lineIndex, symbolId: firstSymbol.id, count: matchCount, payout });
                 }
             }
         });
 
-        // Check 3-column paylines (left side: columns 0-2)
-        PAYLINES_3_LEFT.forEach((line) => {
+        // Check 3-column paylines (left side: columns 0-2, lineIndex 5-9)
+        PAYLINES_3_LEFT.forEach((line, localIndex) => {
             const firstSymbol = finalReelsMatrix[0][line[0]];
             let matchCount = 1;
             for (let i = 1; i < 3; i++) {
@@ -133,14 +155,15 @@ const App: React.FC = () => {
             if (matchCount >= 3) {
                 const payout = (firstSymbol.payouts[matchCount] || 0) * (currentBet / BET_AMOUNTS[0]);
                 if (payout > 0) {
+                    const lineIndex = 5 + localIndex; // Map to ALL_PAYLINES index
                     totalWinnings += payout;
-                    newWinningLines.push({ lineIndex: lineIndexCounter++, symbolId: firstSymbol.id, count: matchCount, payout });
+                    newWinningLines.push({ lineIndex, symbolId: firstSymbol.id, count: matchCount, payout });
                 }
             }
         });
 
-        // Check 3-column paylines (middle: columns 1-3)
-        PAYLINES_3_MIDDLE.forEach((line) => {
+        // Check 3-column paylines (middle: columns 1-3, lineIndex 10-14)
+        PAYLINES_3_MIDDLE.forEach((line, localIndex) => {
             const firstSymbol = finalReelsMatrix[1][line[0]];
             let matchCount = 1;
             for (let i = 1; i < 3; i++) {
@@ -154,14 +177,15 @@ const App: React.FC = () => {
             if (matchCount >= 3) {
                 const payout = (firstSymbol.payouts[matchCount] || 0) * (currentBet / BET_AMOUNTS[0]);
                 if (payout > 0) {
+                    const lineIndex = 10 + localIndex; // Map to ALL_PAYLINES index
                     totalWinnings += payout;
-                    newWinningLines.push({ lineIndex: lineIndexCounter++, symbolId: firstSymbol.id, count: matchCount, payout });
+                    newWinningLines.push({ lineIndex, symbolId: firstSymbol.id, count: matchCount, payout });
                 }
             }
         });
 
-        // Check 3-column paylines (right side: columns 2-4)
-        PAYLINES_3_RIGHT.forEach((line) => {
+        // Check 3-column paylines (right side: columns 2-4, lineIndex 15-19)
+        PAYLINES_3_RIGHT.forEach((line, localIndex) => {
             const firstSymbol = finalReelsMatrix[2][line[0]];
             let matchCount = 1;
             for (let i = 1; i < 3; i++) {
@@ -175,8 +199,9 @@ const App: React.FC = () => {
             if (matchCount >= 3) {
                 const payout = (firstSymbol.payouts[matchCount] || 0) * (currentBet / BET_AMOUNTS[0]);
                 if (payout > 0) {
+                    const lineIndex = 15 + localIndex; // Map to ALL_PAYLINES index
                     totalWinnings += payout;
-                    newWinningLines.push({ lineIndex: lineIndexCounter++, symbolId: firstSymbol.id, count: matchCount, payout });
+                    newWinningLines.push({ lineIndex, symbolId: firstSymbol.id, count: matchCount, payout });
                 }
             }
         });
@@ -267,6 +292,10 @@ const App: React.FC = () => {
                     onSpin={handleSpin}
                     isSpinning={gameState !== GameStateEnum.IDLE}
                     canSpin={credits >= currentBet}
+                    musicOn={musicOn}
+                    onMusicToggle={() => setMusicOn(prev => !prev)}
+                    onStopNextReel={handleStopNextReel}
+                    canStopNext={gameState === GameStateEnum.SPINNING && nextStopIndex < REEL_COUNT}
                 />
             </div>
         </main>
