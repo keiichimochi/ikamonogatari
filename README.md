@@ -48,6 +48,18 @@ VercelのServerless FunctionsとVercel KVを使用してランキング機能を
 5. データベース名を入力（例: `ikamonogatari-kv`）
 6. 作成後、環境変数が自動的に設定されます
 
+**本番環境（Vercel）**: 環境変数は自動的に設定されているため、追加の設定は不要です。`@vercel/kv`が自動的に環境変数を読み込みます。
+
+**ローカル開発でテストする場合**: Vercelダッシュボードで表示されている環境変数を`.env.local`ファイルにコピーしてください：
+
+```bash
+KV_URL="your-kv-url"
+KV_REST_API_TOKEN="your-token"
+KV_REST_API_URL="your-api-url"
+KV_REST_API_READ_ONLY_TOKEN="your-read-only-token"
+REDIS_URL="your-redis-url"
+```
+
 これでランキングが永続的に保存され、Vercelの再起動後も消えません。
 
 ## GitHub Pagesで公開（オプション）
