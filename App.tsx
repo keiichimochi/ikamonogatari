@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { SYMBOLS, REEL_COUNT, VISIBLE_SYMBOLS, INITIAL_CREDITS, BET_AMOUNTS, REEL_SPIN_DURATION, REEL_STOP_DELAY, WIN_ANIMATION_DURATION } from './constants';
+import { SYMBOLS, REEL_COUNT, VISIBLE_SYMBOLS, INITIAL_CREDITS, BET_AMOUNTS, BET_THRESHOLDS, REEL_SPIN_DURATION, REEL_STOP_DELAY, WIN_ANIMATION_DURATION } from './constants';
 import type { SlotSymbolInfo, Reel, GameState, WinningLine } from './types';
 import { GameState as GameStateEnum } from './types';
 import ReelComponent from './components/Reel';
 import ControlPanel from './components/ControlPanel';
 import PayoutTable from './components/PayoutTable';
+import Ranking from './components/Ranking';
+
+const HIGH_SCORE_KEY = 'ikamonogatari_high_score';
 
 const generateReel = (): Reel => {
     const reel: Reel = [];
@@ -16,8 +19,15 @@ const generateReel = (): Reel => {
 };
 
 const App: React.FC = () => {
+    // Load high score from localStorage
+    const [highScore, setHighScore] = useState<number>(() => {
+        const saved = localStorage.getItem(HIGH_SCORE_KEY);
+        return saved ? parseInt(saved, 10) : 0;
+    });
+    
     const [credits, setCredits] = useState(INITIAL_CREDITS);
     const [betIndex, setBetIndex] = useState(0);
+    const [maxBetIndex, setMaxBetIndex] = useState(0); // 到達した最高BETインデックス
     const [reels, setReels] = useState<Reel[]>(() => Array(REEL_COUNT).fill(0).map(generateReel));
     const [spinningReels, setSpinningReels] = useState<boolean[]>(Array(REEL_COUNT).fill(false));
     const [finalSymbolIndexes, setFinalSymbolIndexes] = useState<number[]>(Array(REEL_COUNT).fill(0));
@@ -34,19 +44,41 @@ const App: React.FC = () => {
     const backgroundMusicRef = React.useRef<HTMLAudioElement | null>(null);
     const winSoundRef = React.useRef<HTMLAudioElement | null>(null);
     
-    // Calculate current bet based on credits
-    // If credits > 1000, bet is 200, otherwise 100
+    // Calculate current bet based on betIndex (ユーザーが選択したBETを使用)
     const currentBet = useMemo(() => {
-        return credits > 1000 ? BET_AMOUNTS[1] : BET_AMOUNTS[0];
-    }, [credits]);
+        return BET_AMOUNTS[betIndex];
+    }, [betIndex]);
     
-    // Auto-adjust bet index based on credits
+    // Auto-adjust bet index based on credits (一度上がったBETは下がらない)
     useEffect(() => {
-        const newBetIndex = credits > 1000 ? 1 : 0;
-        if (betIndex !== newBetIndex) {
-            setBetIndex(newBetIndex);
+        // クレジットに応じて新しいBETインデックスを計算
+        let newBetIndex = 0;
+        for (let i = BET_THRESHOLDS.length - 1; i >= 0; i--) {
+            if (credits >= BET_THRESHOLDS[i]) {
+                newBetIndex = i;
+                break;
+            }
         }
-    }, [credits, betIndex]);
+        
+        // 最高到達BETインデックスを更新（下がらない）
+        if (newBetIndex > maxBetIndex) {
+            setMaxBetIndex(newBetIndex);
+            setBetIndex(newBetIndex);
+        } else {
+            // 現在のBETインデックスは最高到達BETインデックスを超えない
+            if (betIndex > maxBetIndex) {
+                setBetIndex(maxBetIndex);
+            }
+        }
+    }, [credits, maxBetIndex, betIndex]);
+    
+    // Update high score when credits increase
+    useEffect(() => {
+        if (credits > highScore) {
+            setHighScore(credits);
+            localStorage.setItem(HIGH_SCORE_KEY, credits.toString());
+        }
+    }, [credits, highScore]);
 
     // Initialize background music on component mount
     useEffect(() => {
@@ -384,6 +416,8 @@ const App: React.FC = () => {
             const timer = setTimeout(() => {
                 // Reset game state
                 setCredits(INITIAL_CREDITS);
+                setBetIndex(0);
+                setMaxBetIndex(0); // BETもリセット
                 setGameState(GameStateEnum.IDLE);
                 setLastWin(null);
                 setWinningLines([]);
@@ -405,9 +439,11 @@ const App: React.FC = () => {
     const handleBetChange = (direction: 'up' | 'down') => {
         if (gameState !== GameStateEnum.IDLE) return;
         if (direction === 'up') {
-            setBetIndex(prev => (prev + 1) % BET_AMOUNTS.length);
+            // 最高到達BETインデックスまでしか上げられない
+            setBetIndex(prev => Math.min(prev + 1, maxBetIndex));
         } else {
-            setBetIndex(prev => (prev - 1 + BET_AMOUNTS.length) % BET_AMOUNTS.length);
+            // 最高到達BETインデックスより下には下がらない（一度上がったBETは下がらない）
+            setBetIndex(prev => Math.max(maxBetIndex, prev - 1));
         }
     };
     
@@ -426,6 +462,12 @@ const App: React.FC = () => {
                     <h1 className="text-2xl sm:text-3xl md:text-5xl font-game text-yellow-300 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">
                         イカ物語
                     </h1>
+                    {highScore > 0 && (
+                        <div className="mt-2 text-xs sm:text-sm md:text-base text-yellow-200">
+                            <span className="font-bold">最高得点: </span>
+                            <span className="font-game">{highScore}</span>
+                        </div>
+                    )}
                 </header>
 
                 <div className="grid grid-cols-5 gap-1 sm:gap-2 md:gap-4 p-1 sm:p-2 md:p-4 bg-black/30 rounded-lg border-2 border-yellow-600">
@@ -485,6 +527,8 @@ const App: React.FC = () => {
                     onStopNextReel={handleStopNextReel}
                     canStopNext={gameState === GameStateEnum.SPINNING && nextStopIndex < REEL_COUNT}
                 />
+                
+                <Ranking currentScore={highScore} />
             </div>
         </main>
     );

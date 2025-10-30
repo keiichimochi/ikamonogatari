@@ -85,7 +85,10 @@ export const ALL_PAYLINES: (number | null)[][] = [
 ];
 
 export const INITIAL_CREDITS = 500;
-export const BET_AMOUNTS = [100, 200];
+export const BET_AMOUNTS = [100, 200, 300, 500, 1000];
+
+// BETが上がるクレジットの閾値
+export const BET_THRESHOLDS = [500, 1000, 2000, 5000, 10000];
 
 // Durations in milliseconds
 export const REEL_SPIN_DURATION = 1000;

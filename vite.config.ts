@@ -5,6 +5,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
+      // Vercelではbase設定は不要（デフォルトの/でOK）
       server: {
         port: 3000,
         host: '0.0.0.0',
