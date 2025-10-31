@@ -19,6 +19,12 @@ export default defineConfig(({ mode }) => {
         alias: {
           '@': path.resolve(__dirname, '.'),
         }
-      }
+      },
+      // api/フォルダはVercelのServerless Functions用なので、Viteのビルドから除外
+      build: {
+        rollupOptions: {
+          external: ['@vercel/kv'],
+        },
+      },
     };
 });
