@@ -6,19 +6,26 @@ interface StampProps {
 }
 
 const STAMPS = [
-  '/images/stamp/noテキーラ.png',
-  '/images/stamp/イカはおやつ.png',
-  '/images/stamp/とりあえずイカ.png',
-  '/images/stamp/問題ねぇ.png',
-  '/images/stamp/おでん屋で.png',
-  '/images/stamp/お好み.png',
-  '/images/stamp/くっきんぐ.png',
-  '/images/stamp/チャイヨー.png',
-  '/images/stamp/晩酌やで.png',
+  '/images/stamp/no.png',
+  '/images/stamp/oyatu.png',
+  '/images/stamp/toriaezu.png',
+  '/images/stamp/mondai.png',
+  '/images/stamp/oden.png',
+  '/images/stamp/okonomi.png',
+  '/images/stamp/cocking.png',
+  '/images/stamp/chaiyo.png',
+  '/images/stamp/banchaku.png',
 ];
 
 const StampModal: React.FC<StampProps> = ({ stampUrl, onClose }) => {
   const [copied, setCopied] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
+  // 画像読み込みエラーのハンドリング
+  const handleImageError = () => {
+    console.error('Failed to load stamp image:', stampUrl);
+    setImageError(true);
+  };
 
   // 画像をダウンロード
   const handleDownload = async () => {
@@ -73,11 +80,18 @@ const StampModal: React.FC<StampProps> = ({ stampUrl, onClose }) => {
         </div>
 
         <div className="mb-6 flex justify-center">
-          <img
-            src={stampUrl}
-            alt="スタンプ"
-            className="max-w-full h-auto max-h-64 rounded-lg border-2 border-yellow-400 shadow-lg"
-          />
+          {imageError ? (
+            <div className="max-w-full h-auto max-h-64 rounded-lg border-2 border-yellow-400 shadow-lg bg-gray-800 flex items-center justify-center p-8">
+              <p className="text-white text-sm">画像の読み込みに失敗しました</p>
+            </div>
+          ) : (
+            <img
+              src={stampUrl}
+              alt="スタンプ"
+              className="max-w-full h-auto max-h-64 rounded-lg border-2 border-yellow-400 shadow-lg"
+              onError={handleImageError}
+            />
+          )}
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3">
