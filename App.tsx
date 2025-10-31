@@ -6,8 +6,13 @@ import ReelComponent from './components/Reel';
 import ControlPanel from './components/ControlPanel';
 import PayoutTable from './components/PayoutTable';
 import Ranking from './components/Ranking';
+import StampModal, { STAMPS } from './components/StampModal';
 
 const HIGH_SCORE_KEY = 'ikamonogatari_high_score';
+const STAMP_MILESTONES_KEY = 'ikamonogatari_stamp_milestones';
+
+// スタンプがもらえるスコアのマイルストーン
+const STAMP_MILESTONES = [5000, 10000, 20000, 30000, 50000];
 
 const generateReel = (): Reel => {
     const reel: Reel = [];
@@ -25,6 +30,12 @@ const App: React.FC = () => {
         return saved ? parseInt(saved, 10) : 0;
     });
     
+    // Load achieved milestones from localStorage
+    const [achievedMilestones, setAchievedMilestones] = useState<number[]>(() => {
+        const saved = localStorage.getItem(STAMP_MILESTONES_KEY);
+        return saved ? JSON.parse(saved) : [];
+    });
+    
     const [credits, setCredits] = useState(INITIAL_CREDITS);
     const [betIndex, setBetIndex] = useState(0);
     const [maxBetIndex, setMaxBetIndex] = useState(0); // 到達した最高BETインデックス
@@ -39,10 +50,15 @@ const App: React.FC = () => {
     const [showOops, setShowOops] = useState(false);
     const [oopsImage, setOopsImage] = useState<string | null>(null);
     const [showGameOver, setShowGameOver] = useState(false);
+    const [showStamp, setShowStamp] = useState(false);
+    const [currentStamp, setCurrentStamp] = useState<string | null>(null);
+    const [isHurryMode, setIsHurryMode] = useState(false);
     
     // Audio refs
     const backgroundMusicRef = React.useRef<HTMLAudioElement | null>(null);
     const winSoundRef = React.useRef<HTMLAudioElement | null>(null);
+    const gameOverSoundRef = React.useRef<HTMLAudioElement | null>(null);
+    const currentMusicFileRef = React.useRef<string>('');
     
     // Calculate current bet based on betIndex (ユーザーが選択したBETを使用)
     // クレジットがBETより少ない場合は、クレジット全額をBETとして使用
@@ -74,25 +90,80 @@ const App: React.FC = () => {
         }
     }, [credits, maxBetIndex, betIndex]);
     
+    // Helper function to give a stamp
+    const giveStamp = useCallback(() => {
+        // 既に獲得したスタンプを取得
+        const savedStamps = JSON.parse(localStorage.getItem('ikamonogatari_stamps') || '[]');
+        
+        // まだ獲得していないスタンプを取得
+        const uncollectedStamps = STAMPS.filter(stamp => !savedStamps.includes(stamp));
+        
+        let stampToGive: string | null = null;
+        
+        if (uncollectedStamps.length > 0) {
+            // 未獲得のスタンプがある場合は、その中からランダムに選択
+            stampToGive = uncollectedStamps[Math.floor(Math.random() * uncollectedStamps.length)];
+        } else {
+            // すべてのスタンプを獲得済みの場合は、既に獲得したスタンプからランダムに選択（重複OK）
+            stampToGive = STAMPS[Math.floor(Math.random() * STAMPS.length)];
+        }
+        
+        // スタンプを表示
+        if (stampToGive) {
+            setCurrentStamp(stampToGive);
+            setShowStamp(true);
+            
+            // 獲得したスタンプをlocalStorageに保存（重複チェック）
+            if (!savedStamps.includes(stampToGive)) {
+                savedStamps.push(stampToGive);
+                localStorage.setItem('ikamonogatari_stamps', JSON.stringify(savedStamps));
+            }
+        }
+    }, []);
+    
     // Update high score when credits increase
     useEffect(() => {
         if (credits > highScore) {
             setHighScore(credits);
             localStorage.setItem(HIGH_SCORE_KEY, credits.toString());
+            
+            // ハイスコア更新時にスタンプを配布
+            giveStamp();
         }
-    }, [credits, highScore]);
+    }, [credits, highScore, giveStamp]);
+    
+    // Check for milestone achievements
+    useEffect(() => {
+        // 達成したマイルストーンを確認
+        const newMilestones = STAMP_MILESTONES.filter(milestone => 
+            credits >= milestone && !achievedMilestones.includes(milestone)
+        );
+        
+        if (newMilestones.length > 0) {
+            // 新しいマイルストーンを達成した場合、スタンプを配布
+            giveStamp();
+            
+            // 達成したマイルストーンを保存
+            const updatedMilestones = [...achievedMilestones, ...newMilestones];
+            setAchievedMilestones(updatedMilestones);
+            localStorage.setItem(STAMP_MILESTONES_KEY, JSON.stringify(updatedMilestones));
+        }
+    }, [credits, achievedMilestones, giveStamp]);
 
     // Initialize background music on component mount
     useEffect(() => {
-        backgroundMusicRef.current = new Audio('/sounds/casino.mp3');
-        backgroundMusicRef.current.loop = true;
-        backgroundMusicRef.current.volume = 0.5;
-        
-        // Play background music when component mounts
-        if (musicOn) {
-            backgroundMusicRef.current.play().catch(err => {
-                console.log('Background music play failed:', err);
-            });
+        if (!backgroundMusicRef.current) {
+            backgroundMusicRef.current = new Audio('/sounds/casino.mp3');
+            backgroundMusicRef.current.loop = true;
+            backgroundMusicRef.current.volume = 0.5;
+            currentMusicFileRef.current = '/sounds/casino.mp3';
+            
+            // 音楽がONの場合は再生
+            if (musicOn) {
+                backgroundMusicRef.current.play().catch(err => {
+                    console.log('Background music play failed:', err);
+                });
+            }
         }
 
         // Cleanup on unmount
@@ -100,9 +171,46 @@ const App: React.FC = () => {
             if (backgroundMusicRef.current) {
                 backgroundMusicRef.current.pause();
                 backgroundMusicRef.current = null;
+                currentMusicFileRef.current = '';
             }
         };
     }, []);
+
+    // Update hurry mode status based on credits
+    useEffect(() => {
+        const newIsHurry = credits >= currentBet && credits < currentBet * 2;
+        setIsHurryMode(newIsHurry);
+    }, [credits, currentBet]);
+
+    // Switch music when hurry mode changes
+    useEffect(() => {
+        if (!backgroundMusicRef.current) return;
+        
+        const musicFile = isHurryMode ? '/sounds/hurry.mp3' : '/sounds/casino.mp3';
+        
+        // 既に同じ音楽が再生中の場合は何もしない
+        if (currentMusicFileRef.current === musicFile) {
+            return;
+        }
+        
+        // 現在の音楽を停止
+        const wasPlaying = !backgroundMusicRef.current.paused;
+        backgroundMusicRef.current.pause();
+        backgroundMusicRef.current = null;
+        
+        // 新しい音楽を読み込む
+        backgroundMusicRef.current = new Audio(musicFile);
+        backgroundMusicRef.current.loop = true;
+        backgroundMusicRef.current.volume = 0.5;
+        currentMusicFileRef.current = musicFile;
+        
+        // 音楽がONだった場合は新しい音楽を再生
+        if (wasPlaying && musicOn) {
+            backgroundMusicRef.current.play().catch(err => {
+                console.log('Background music play failed:', err);
+            });
+        }
+    }, [isHurryMode]);
 
     // Handle music on/off toggle
     useEffect(() => {
@@ -121,6 +229,10 @@ const App: React.FC = () => {
     useEffect(() => {
         winSoundRef.current = new Audio('/sounds/Levelup.mp3');
         winSoundRef.current.volume = 0.7;
+        
+        // Initialize game over sound
+        gameOverSoundRef.current = new Audio('/sounds/GameOver.mp3');
+        gameOverSoundRef.current.volume = 0.7;
     }, []);
 
     // Check for game over when credits drop below minimum bet
@@ -207,7 +319,8 @@ const App: React.FC = () => {
                 return;
             }
 
-            const payout = basePayout * (currentBet / BET_AMOUNTS[0]);
+            // ペイアウトを計算（BETの倍率を掛ける）
+            const payout = Math.floor(basePayout * (currentBet / BET_AMOUNTS[0]));
             if (payout <= 0) {
                 return;
             }
@@ -420,6 +533,49 @@ const App: React.FC = () => {
     // Handle game over animation and reset
     useEffect(() => {
         if (showGameOver) {
+            // バックミュージックを一時停止
+            if (backgroundMusicRef.current) {
+                backgroundMusicRef.current.pause();
+            }
+            
+            // GameOver.mp3を再生
+            let cleanupGameOverSound: (() => void) | null = null;
+            if (gameOverSoundRef.current) {
+                gameOverSoundRef.current.currentTime = 0;
+                
+                // GameOver.mp3の再生が終わったら、casino.mp3に戻す
+                const handleGameOverEnd = () => {
+                    // バックミュージックをcasino.mp3に戻す
+                    if (backgroundMusicRef.current) {
+                        backgroundMusicRef.current.pause();
+                        backgroundMusicRef.current = null;
+                    }
+                    backgroundMusicRef.current = new Audio('/sounds/casino.mp3');
+                    backgroundMusicRef.current.loop = true;
+                    backgroundMusicRef.current.volume = 0.5;
+                    currentMusicFileRef.current = '/sounds/casino.mp3';
+                    
+                    // 音楽がONの場合は再生
+                    if (musicOn) {
+                        backgroundMusicRef.current.play().catch(err => {
+                            console.log('Background music play failed:', err);
+                        });
+                    }
+                };
+                
+                gameOverSoundRef.current.onended = handleGameOverEnd;
+                gameOverSoundRef.current.play().catch(err => {
+                    console.log('Game over sound play failed:', err);
+                });
+                
+                // クリーンアップでonendedハンドラーを削除
+                cleanupGameOverSound = () => {
+                    if (gameOverSoundRef.current) {
+                        gameOverSoundRef.current.onended = null;
+                    }
+                };
+            }
+            
             const timer = setTimeout(() => {
                 // Reset game state
                 setCredits(INITIAL_CREDITS);
@@ -439,9 +595,16 @@ const App: React.FC = () => {
                 setSpinningReels(Array(REEL_COUNT).fill(false));
                 console.log('Game reset: Credits reset to 500');
             }, 3000); // Wait for animation to complete
-            return () => clearTimeout(timer);
+            
+            // クリーンアップ関数をまとめる
+            return () => {
+                clearTimeout(timer);
+                if (cleanupGameOverSound) {
+                    cleanupGameOverSound();
+                }
+            };
         }
-    }, [showGameOver]);
+    }, [showGameOver, musicOn]);
 
     const handleBetChange = (direction: 'up' | 'down') => {
         if (gameState !== GameStateEnum.IDLE) return;
@@ -520,6 +683,16 @@ const App: React.FC = () => {
                             </p>
                         </div>
                     </div>
+                )}
+                
+                {showStamp && currentStamp && (
+                    <StampModal
+                        stampUrl={currentStamp}
+                        onClose={() => {
+                            setShowStamp(false);
+                            setCurrentStamp(null);
+                        }}
+                    />
                 )}
                 
                 <ControlPanel
